@@ -1,0 +1,6 @@
+pip uninstall torch torchaudio
+pip install torch==2.1.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
+pip uninstall numpy
+pip install numpy==1.26.4
+pip uninstall transformers
+pip install transformers==4.31.0
