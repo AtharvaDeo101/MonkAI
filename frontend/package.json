@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "next": "^15.3.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
@@ -8,5 +9,11 @@
     "@types/react-dom": "^19.1.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   }
 }

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +28,7 @@ import { MusicPlayer } from "@/components/music-player"
 export function AdvancedComposer() {
   const [description, setDescription] = useState("")
   const [duration, setDuration] = useState([240]) // 4 minutes default
+  const [modelSize, setModelSize] = useState<"small" | "medium">("small") // Model size selection
   const [currentTrack, setCurrentTrack] = useState<any>(null)
   const [isGenerating, setIsGenerating] = useState(false)
 
@@ -45,17 +45,37 @@ export function AdvancedComposer() {
     if (!description.trim()) return
 
     setIsGenerating(true)
-    setTimeout(() => {
+    try {
+      const formData = new FormData()
+      formData.append("description", description)
+      formData.append("model_size", modelSize)
+
+      const response = await fetch("http://localhost:5000/generate", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate music")
+      }
+
+      const blob = await response.blob()
+      const audioUrl = URL.createObjectURL(blob)
+
       setCurrentTrack({
         title: "AI Composed Track",
         description: description,
         duration: formatDuration(duration[0]),
-        audioUrl: "/placeholder-audio.mp3",
+        audioUrl: audioUrl,
         originalDuration: duration[0],
         createdAt: new Date().toISOString(),
       })
+    } catch (error) {
+      console.error("Error generating music:", error)
+      // Show error message to user here
+    } finally {
       setIsGenerating(false)
-    }, 2000)
+    }
   }
 
   const formatDuration = (seconds: number) => {
@@ -94,6 +114,32 @@ export function AdvancedComposer() {
     setFadeOut([0])
   }
 
+  const handleSave = () => {
+    console.log("Saving track:", currentTrack)
+    // In a real app, this would save to a backend or local storage
+  }
+
+  const handleShare = () => {
+    if (navigator.share && currentTrack) {
+      navigator.share({
+        title: currentTrack.title,
+        text: `Check out this AI-generated music: ${currentTrack.description}`,
+        url: currentTrack.audioUrl,
+      })
+    } else {
+      navigator.clipboard.writeText(currentTrack?.audioUrl || window.location.href)
+    }
+  }
+
+  const handleDownload = () => {
+    if (currentTrack) {
+      const link = document.createElement("a")
+      link.href = currentTrack.audioUrl
+      link.download = `${currentTrack.title}.wav`
+      link.click()
+    }
+  }
+
   return (
     <div className="container mx-auto px-6 py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
@@ -128,6 +174,18 @@ export function AdvancedComposer() {
                   Duration: {formatDuration(duration[0])}
                 </label>
                 <Slider value={duration} onValueChange={setDuration} min={30} max={600} step={30} />
+              </div>
+
+              <div>
+                <label className="text-white text-sm font-medium mb-2 block">Model Size</label>
+                <select
+                  value={modelSize}
+                  onChange={(e) => setModelSize(e.target.value as "small" | "medium")}
+                  className="w-full bg-white/5 border border-white/20 rounded-md px-3 py-2 text-white"
+                >
+                  <option value="small">Small Model</option>
+                  <option value="medium">Medium Model</option>
+                </select>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -186,9 +244,17 @@ export function AdvancedComposer() {
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset All Settings
               </Button>
-              <Button variant="outline" size="sm" className="w-full border-white/20 text-white">
-                <Copy className="w-4 h-4 mr-2" />
-                Duplicate Track
+              <Button onClick={handleSave} variant="outline" size="sm" className="w-full border-white/20 text-white">
+                <Save className="w-4 h-4 mr-2" />
+                Save Track
+              </Button>
+              <Button onClick={handleShare} variant="outline" size="sm" className="w-full border-white/20 text-white">
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Track
+              </Button>
+              <Button onClick={handleDownload} variant="outline" size="sm" className="w-full border-white/20 text-white">
+                <Download className="w-4 h-4 mr-2" />
+                Download Track
               </Button>
             </CardContent>
           </Card>
@@ -421,15 +487,15 @@ export function AdvancedComposer() {
                       <div>
                         <h4 className="text-white font-medium mb-3">Actions</h4>
                         <div className="space-y-2">
-                          <Button className="w-full bg-green-600 hover:bg-green-700">
+                          <Button onClick={handleSave} className="w-full bg-green-600 hover:bg-green-700">
                             <Save className="w-4 h-4 mr-2" />
                             Save Project
                           </Button>
-                          <Button variant="outline" className="w-full border-white/20 text-white">
+                          <Button onClick={handleDownload} variant="outline" className="w-full border-white/20 text-white">
                             <Download className="w-4 h-4 mr-2" />
                             Export Audio
                           </Button>
-                          <Button variant="outline" className="w-full border-white/20 text-white">
+                          <Button onClick={handleShare} variant="outline" className="w-full border-white/20 text-white">
                             <Share2 className="w-4 h-4 mr-2" />
                             Share Project
                           </Button>

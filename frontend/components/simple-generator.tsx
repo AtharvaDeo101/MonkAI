@@ -13,6 +13,7 @@ import { MusicPlayer } from "@/components/music-player"
 export function SimpleGenerator() {
   const [description, setDescription] = useState("")
   const [duration, setDuration] = useState([180]) // 3 minutes default
+  const [modelSize, setModelSize] = useState<"small" | "medium">("small") // Model size selection
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedMusic, setGeneratedMusic] = useState<any>(null)
 
@@ -20,19 +21,38 @@ export function SimpleGenerator() {
     if (!description.trim()) return
 
     setIsGenerating(true)
-    // Simulate AI music generation
-    setTimeout(() => {
+    try {
+      const formData = new FormData()
+      formData.append("description", description)
+      formData.append("model_size", modelSize)
+
+      const response = await fetch("http://localhost:5000/generate", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate music")
+      }
+
+      const blob = await response.blob()
+      const audioUrl = URL.createObjectURL(blob)
+
       setGeneratedMusic({
         title: "AI Generated Track",
         description: description,
         duration: formatDuration(duration[0]),
         genre: "AI Generated",
         mood: "Creative",
-        audioUrl: "/placeholder-audio.mp3",
+        audioUrl: audioUrl,
         createdAt: new Date().toISOString(),
       })
+    } catch (error) {
+      console.error("Error generating music:", error)
+      // You might want to show an error message to the user here
+    } finally {
       setIsGenerating(false)
-    }, 3000)
+    }
   }
 
   const formatDuration = (seconds: number) => {
@@ -42,31 +62,29 @@ export function SimpleGenerator() {
   }
 
   const handleSave = () => {
-    // Mock save functionality
     console.log("Saving track:", generatedMusic)
-    // In a real app, this would save to user's library
+    // In a real app, this would save to a backend or local storage
   }
 
   const handleShare = () => {
-    // Mock share functionality
-    if (navigator.share) {
+    if (navigator.share && generatedMusic) {
       navigator.share({
         title: generatedMusic.title,
         text: `Check out this AI-generated music: ${generatedMusic.description}`,
-        url: window.location.href,
+        url: generatedMusic.audioUrl,
       })
     } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href)
+      navigator.clipboard.writeText(generatedMusic?.audioUrl || window.location.href)
     }
   }
 
   const handleDownload = () => {
-    // Mock download functionality
-    const link = document.createElement("a")
-    link.href = generatedMusic.audioUrl
-    link.download = `${generatedMusic.title}.mp3`
-    link.click()
+    if (generatedMusic) {
+      const link = document.createElement("a")
+      link.href = generatedMusic.audioUrl
+      link.download = `${generatedMusic.title}.wav`
+      link.click()
+    }
   }
 
   return (
@@ -107,6 +125,18 @@ export function SimpleGenerator() {
                   <span>30s</span>
                   <span>10min</span>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-white text-sm font-medium mb-2 block">Model Size</label>
+                <select
+                  value={modelSize}
+                  onChange={(e) => setModelSize(e.target.value as "small" | "medium")}
+                  className="w-full bg-white/5 border border-white/20 rounded-md px-3 py-2 text-white"
+                >
+                  <option value="small">Small Model</option>
+                  <option value="medium">Medium Model</option>
+                </select>
               </div>
 
               <div>

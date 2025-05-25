@@ -1,12 +1,14 @@
 from flask import Flask, render_template, request, send_file, jsonify
+from flask_cors import CORS
 import os
 import time
 from music_generator import generate_music
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Directory for generated files
-GENERATED_DIR = "generated"
+GENERATED_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "generated")
 if not os.path.exists(GENERATED_DIR):
     os.makedirs(GENERATED_DIR)
 
@@ -52,4 +54,4 @@ def cleanup_generated_files():
             pass
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
