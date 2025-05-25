@@ -1,3 +1,5 @@
 .venv
 medium_model.pt
 small_model.pt
+generated/
+node_modules/
