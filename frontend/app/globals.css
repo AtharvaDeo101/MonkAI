@@ -61,9 +61,6 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
     @apply bg-black text-foreground;
     background: linear-gradient(135deg, #000000 0%, #1a0b2e 25%, #16213e 50%, #0f3460 75%, #533a7d 100%);

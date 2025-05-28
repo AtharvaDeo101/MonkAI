@@ -157,8 +157,7 @@ export default function LandingPage() {
       <motion.nav
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-purple-500/20"
-      >
+        className="fixed top-0 w-full z-50 bg-blue-500/80 backdrop-blur-md border-b border-purple-500/20"      >
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
