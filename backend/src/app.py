@@ -1,57 +1,74 @@
-from flask import Flask, render_template, request, send_file, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from contextlib import asynccontextmanager
+import torchaudio
+from audiocraft.models import MusicGen
+import torch
 import os
-import time
-from music_generator import generate_music
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+app = FastAPI(title="MusicGen API", description="Generate music using MusicGen model")
 
-# Directory for generated files
-GENERATED_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "generated")
-if not os.path.exists(GENERATED_DIR):
-    os.makedirs(GENERATED_DIR)
+class MusicRequest(BaseModel):
+    description: str
+    duration: float = 5.0  # Reduced default duration for faster generation
+    output_path: str = "output_music.wav"
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+model_size = 'small'  # Use 'small' for faster testing
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+model = None  # Will be initialized during startup
 
-@app.route('/generate', methods=['POST'])
-def generate_music_endpoint():
-    description = request.form.get('description')
-    model_size = request.form.get('model_size', 'small')  # Default to small model
-    if not description:
-        return jsonify({'error': 'Description is required'}), 400
-    if model_size not in ['small', 'medium']:
-        return jsonify({'error': 'Invalid model size'}), 400
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events."""
+    global model
+    try:
+
+        print(f"Pre-caching MusicGen model weights ({model_size})...")
+        MusicGen.get_pretrained(model_size)
+        print(f"Loading MusicGen model ({model_size}) on {device}...")
+        model = MusicGen.get_pretrained(model_size, device=device)
+        print("Model weights cached and model loaded successfully.")
+        yield  # Application runs here
+    except Exception as e:
+        print(f"Error during model pre-caching or loading: {str(e)}")
+        raise RuntimeError(f"Failed to pre-cache or load model: {str(e)}")
+    finally:
+        
+        print("Shutting down MusicGen API...")
+
+
+app.lifespan = lifespan
+
+@app.post("/generate_music", response_model=dict)
+async def generate_music(request: MusicRequest):
 
     try:
-        # Generate unique filename with timestamp
-        timestamp = int(time.time())
-        output_file = os.path.join(GENERATED_DIR, f"output_{timestamp}.wav")
+        # Validate output path
+        if not request.output_path.endswith('.wav'):
+            raise HTTPException(status_code=400, detail="Output path must end with .wav")
         
-        # Generate music using the provided description and model size
-        generate_music(description, output_file, model_size)
+        # Ensure output directory exists
+        output_dir = os.path.dirname(request.output_path) or '.'
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Set generation parameters
+        model.set_generation_params(duration=request.duration)
         
-        # Send the generated file for download
-        return send_file(output_file, as_attachment=True, download_name="generated_music.wav")
+        # Generate music
+        print(f"Generating {request.duration}s of music for: {request.description}")
+        wav = model.generate([request.description])
+        
+        # Save the generated audio
+        torchaudio.save(request.output_path, wav[0].cpu(), sample_rate=32000)
+        print(f"Music saved to {request.output_path}")
+        
+        return {"message": f"Music generated and saved to {request.output_path}"}
+    
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        # Clean up old generated files (keep only the latest 10)
-        cleanup_generated_files()
+        print(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
 
-def cleanup_generated_files():
-    files = sorted(
-        [f for f in os.listdir(GENERATED_DIR) if f.endswith('.wav')],
-        key=lambda x: os.path.getctime(os.path.join(GENERATED_DIR, x))
-    )
-    # Keep only the latest 10 files
-    for old_file in files[:-10]:
-        try:
-            os.remove(os.path.join(GENERATED_DIR, old_file))
-        except OSError:
-            pass
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+@app.get("/health")
+async def health_check():
+    """Check if the API is running and the model is loaded."""
+    return {"status": "healthy", "model_size": model_size, "device": device}
