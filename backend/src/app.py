@@ -70,5 +70,4 @@ async def generate_music(request: MusicRequest):
 
 @app.get("/health")
 async def health_check():
-    """Check if the API is running and the model is loaded."""
     return {"status": "healthy", "model_size": model_size, "device": device}
