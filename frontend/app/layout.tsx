@@ -6,7 +6,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "MusicAI - Generate Music with AI",
+  title: "MonkAI - Generate Music with AI",
   description:
     "Transform your ideas into beautiful music with AI-powered generation and explore copyright-free tracks.",
 }

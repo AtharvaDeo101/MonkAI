@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { useState } from "react"
-import { Wand2, Play, Download, Loader2 } from "lucide-react"
+import { Wand2, Play, Download, Loader2, Sparkles, Zap, Music2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -81,9 +81,16 @@ export default function GeneratePage() {
     }, 3000)
   }
 
+  const suggestions = [
+    { text: "Upbeat electronic dance music", color: "from-[#5F85DB] to-[#7B68EE]" },
+    { text: "Relaxing ambient soundscape", color: "from-[#4ECDC4] to-[#44A08D]" },
+    { text: "Energetic rock anthem", color: "from-[#FF6B6B] to-[#FF8E53]" },
+    { text: "Smooth jazz melody", color: "from-[#FFD93D] to-[#FF6B6B]" },
+  ]
+
   return (
     <div className="min-h-screen bg-[#000000] relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#5F85DB]/[0.05] via-transparent to-[#5F85DB]/[0.08] blur-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#5F85DB]/[0.08] via-[#FF6B6B]/[0.05] to-[#4ECDC4]/[0.08] blur-3xl" />
 
       {/* Geometric Shapes */}
       <div className="absolute inset-0 overflow-hidden">
@@ -92,7 +99,7 @@ export default function GeneratePage() {
           width={350}
           height={90}
           rotate={15}
-          gradient="from-[#5F85DB]/[0.12]"
+          gradient="from-[#5F85DB]/[0.15]"
           className="left-[-8%] top-[25%]"
         />
         <ElegantShape
@@ -100,7 +107,7 @@ export default function GeneratePage() {
           width={280}
           height={70}
           rotate={-12}
-          gradient="from-[#5F85DB]/[0.12]"
+          gradient="from-[#FF6B6B]/[0.12]"
           className="right-[-6%] top-[65%]"
         />
         <ElegantShape
@@ -108,22 +115,36 @@ export default function GeneratePage() {
           width={180}
           height={50}
           rotate={8}
-          gradient="from-[#5F85DB]/[0.12]"
+          gradient="from-[#4ECDC4]/[0.12]"
           className="left-[15%] bottom-[20%]"
+        />
+        <ElegantShape
+          delay={0.6}
+          width={120}
+          height={40}
+          rotate={-20}
+          gradient="from-[#FFD93D]/[0.10]"
+          className="right-[20%] top-[15%]"
         />
       </div>
 
       <Header />
 
       <div className="relative z-10 pt-20 px-4 pb-8">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-center mb-8"
           >
-            <h1 className="text-3xl md:text-4xl font-bold text-[#FAF7F0] mb-4">Generate Music with AI</h1>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#5F85DB]/10 to-[#FF6B6B]/10 border border-[#5F85DB]/20 mb-4">
+              <Sparkles className="w-5 h-5 text-[#FFD93D]" />
+              <span className="text-sm text-[#FAF7F0]/80 tracking-wide">AI Music Generation</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FAF7F0] via-[#5F85DB] to-[#FF6B6B] mb-4">
+              Generate Music with AI
+            </h1>
             <p className="text-[#FAF7F0]/60 text-lg">Describe your musical vision and let AI bring it to life</p>
           </motion.div>
 
@@ -137,7 +158,9 @@ export default function GeneratePage() {
               <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
-                    <Wand2 className="w-5 h-5" />
+                    <div className="w-8 h-8 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] rounded-lg flex items-center justify-center">
+                      <Wand2 className="w-5 h-5 text-[#FAF7F0]" />
+                    </div>
                     Music Description
                   </CardTitle>
                 </CardHeader>
@@ -151,8 +174,26 @@ export default function GeneratePage() {
                       placeholder="e.g., Upbeat electronic dance music with synthesizers and a driving beat, perfect for a workout playlist..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="bg-[#26282B]/30 border-[#26282B]/50 text-[#FAF7F0] placeholder:text-[#FAF7F0]/40 min-h-[120px]"
+                      className="bg-[#26282B]/30 border-[#26282B]/50 text-[#FAF7F0] placeholder:text-[#FAF7F0]/40 min-h-[120px] focus:border-[#5F85DB]/50"
                     />
+                  </div>
+
+                  {/* Quick Suggestions */}
+                  <div>
+                    <Label className="text-[#FAF7F0]/80 mb-3 block">Quick suggestions</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {suggestions.map((suggestion, index) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDescription(suggestion.text)}
+                          className={`bg-gradient-to-r ${suggestion.color} bg-opacity-10 border-transparent text-[#FAF7F0]/80 hover:bg-opacity-20 text-xs`}
+                        >
+                          {suggestion.text}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -183,7 +224,7 @@ export default function GeneratePage() {
                       placeholder="my-awesome-track"
                       value={fileName}
                       onChange={(e) => setFileName(e.target.value)}
-                      className="bg-[#26282B]/30 border-[#26282B]/50 text-[#FAF7F0] placeholder:text-[#FAF7F0]/40"
+                      className="bg-[#26282B]/30 border-[#26282B]/50 text-[#FAF7F0] placeholder:text-[#FAF7F0]/40 focus:border-[#5F85DB]/50"
                     />
                     <p className="text-sm text-[#FAF7F0]/60 mt-1">Will be saved as .wav format</p>
                   </div>
@@ -191,7 +232,7 @@ export default function GeneratePage() {
                   <Button
                     onClick={handleGenerate}
                     disabled={!description.trim() || isGenerating}
-                    className="w-full bg-gradient-to-r from-[#5F85DB] to-[#5F85DB] hover:from-[#5F85DB]/90 hover:to-[#5F85DB]/90"
+                    className="w-full bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] hover:from-[#5F85DB]/90 hover:to-[#7B68EE]/90 shadow-lg shadow-[#5F85DB]/25"
                   >
                     {isGenerating ? (
                       <>
@@ -202,6 +243,7 @@ export default function GeneratePage() {
                       <>
                         <Wand2 className="w-4 h-4 mr-2" />
                         Generate Music
+                        <Zap className="w-4 h-4 ml-2" />
                       </>
                     )}
                   </Button>
@@ -217,7 +259,12 @@ export default function GeneratePage() {
             >
               <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-[#FAF7F0]">Generated Track</CardTitle>
+                  <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53] rounded-lg flex items-center justify-center">
+                      <Music2 className="w-5 h-5 text-[#FAF7F0]" />
+                    </div>
+                    Generated Track
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isGenerating ? (
@@ -227,31 +274,31 @@ export default function GeneratePage() {
                         transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                         className="w-16 h-16 border-4 border-[#5F85DB]/30 border-t-[#5F85DB] rounded-full mx-auto mb-4"
                       />
-                      <p className="text-[#FAF7F0]/60">Creating your music...</p>
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <Sparkles className="w-5 h-5 text-[#FFD93D]" />
+                        <p className="text-[#FAF7F0]/80 font-medium">Creating your music...</p>
+                      </div>
+                      <p className="text-[#FAF7F0]/60 text-sm">This may take a few moments</p>
                     </div>
                   ) : generatedTrack ? (
                     <div className="space-y-4">
-                      <div className="bg-[#26282B]/30 rounded-lg p-4">
+                      <div className="bg-gradient-to-r from-[#26282B]/50 to-[#26282B]/30 rounded-lg p-6 border border-[#5F85DB]/20">
                         <div className="flex items-center gap-4 mb-4">
-                          <div className="w-16 h-16 bg-gradient-to-r from-[#5F85DB] to-[#5F85DB] rounded-lg flex items-center justify-center">
-                            <Wand2 className="w-8 h-8 text-[#FAF7F0]" />
+                          <div className="w-16 h-16 bg-gradient-to-r from-[#4ECDC4] to-[#44A08D] rounded-xl flex items-center justify-center">
+                            <Music2 className="w-8 h-8 text-[#FAF7F0]" />
                           </div>
                           <div>
-                            <p className="text-[#FAF7F0] font-medium">{generatedTrack}</p>
-                            <p className="text-[#FAF7F0]/60 text-sm">{duration[0]} seconds</p>
+                            <p className="text-[#FAF7F0] font-medium text-lg">{generatedTrack}</p>
+                            <p className="text-[#FAF7F0]/60 text-sm">{duration[0]} seconds • High Quality</p>
                           </div>
                         </div>
 
                         <div className="flex gap-2">
-                          <Button size="sm" className="flex-1">
+                          <Button size="sm" className="flex-1 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE]">
                             <Play className="w-4 h-4 mr-2" />
                             Play
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-white/20 text-[#FAF7F0] hover:bg-white/10 bg-transparent"
-                          >
+                          <Button size="sm" className="bg-gradient-to-r from-[#4ECDC4] to-[#44A08D] hover:opacity-90">
                             <Download className="w-4 h-4 mr-2" />
                             Download
                           </Button>
@@ -260,10 +307,11 @@ export default function GeneratePage() {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-[#26282B]/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Wand2 className="w-8 h-8 text-[#FAF7F0]/40" />
+                      <div className="w-16 h-16 bg-gradient-to-r from-[#26282B]/50 to-[#26282B]/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Music2 className="w-8 h-8 text-[#FAF7F0]/40" />
                       </div>
-                      <p className="text-[#FAF7F0]/60">Your generated music will appear here</p>
+                      <p className="text-[#FAF7F0]/60 mb-2">Your generated music will appear here</p>
+                      <p className="text-[#FAF7F0]/40 text-sm">Start by describing your musical idea above</p>
                     </div>
                   )}
                 </CardContent>
