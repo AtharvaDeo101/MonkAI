@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import { useState } from "react"
 import { Wand2, Play, Download, Loader2, Sparkles, Zap, Music2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -74,11 +74,25 @@ export default function GeneratePage() {
     if (!description.trim()) return
 
     setIsGenerating(true)
-    // Simulate API call
-    setTimeout(() => {
-      setGeneratedTrack(`${fileName || "generated-track"}.wav`)
+    try {
+      const response = await fetch('http://localhost:8000/generate_music', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, duration: duration[0], fileName }),
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setGeneratedTrack(data.fileName)
+      } else {
+        console.error('Error:', data.detail)
+        alert(`Error: ${data.detail}`)
+      }
+    } catch (error) {
+      console.error('Fetch error:', error)
+      alert('Failed to connect to the backend. Ensure it is running.')
+    } finally {
       setIsGenerating(false)
-    }, 3000)
+    }
   }
 
   const suggestions = [
@@ -293,14 +307,20 @@ export default function GeneratePage() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
-                          <Button size="sm" className="flex-1 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE]">
-                            <Play className="w-4 h-4 mr-2" />
-                            Play
-                          </Button>
-                          <Button size="sm" className="bg-gradient-to-r from-[#4ECDC4] to-[#44A08D] hover:opacity-90">
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
+                        <div className="space-y-4">
+                          <audio controls className="w-full">
+                            <source src={`http://localhost:8000/generated/${generatedTrack}`} type="audio/wav" />
+                            Your browser does not support the audio element.
+                          </audio>
+                          <Button
+                            size="sm"
+                            className="w-full bg-gradient-to-r from-[#4ECDC4] to-[#44A08D] hover:opacity-90"
+                            asChild
+                          >
+                            <a href={`http://localhost:8000/generated/${generatedTrack}`} download={generatedTrack}>
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </a>
                           </Button>
                         </div>
                       </div>
