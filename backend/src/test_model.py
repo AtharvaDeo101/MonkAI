@@ -1,21 +1,23 @@
-import torch
-from audiocraft.models import MusicGen
+# test_model.py
 import logging
+from audiocraft.models import MusicGen
+import torch
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-logger.debug(f"PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}")
-if torch.cuda.is_available():
-    logger.debug(f"CUDA version: {torch.version.cuda}, GPU: {torch.cuda.get_device_name(0)}")
+model_size = 'small'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 try:
-    logger.debug("Pre-caching MusicGen model...")
-    MusicGen.get_pretrained('small')
-    logger.debug("Loading MusicGen model...")
-    model = MusicGen.get_pretrained('small', device='cuda' if torch.cuda.is_available() else 'cpu')
-    logger.debug(f"Model loaded: {model is not None}")
+    logger.debug(f"Environment: PyTorch {torch.__version__}, CUDA available: {torch.cuda.is_available()}, Device: {device}")
+    logger.debug(f"Loading MusicGen model ({model_size}) on {device}...")
+    model = MusicGen.get_pretrained(model_size, device=device)
+    if model is None:
+        logger.error("Model loading returned None")
+    else:
+        logger.info("Model loaded successfully")
 except Exception as e:
-    logger.error(f"Error: {str(e)}")
+    logger.error(f"Error loading model: {str(e)}")
     import traceback
     traceback.print_exc()
