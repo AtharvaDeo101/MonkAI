@@ -10,14 +10,15 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from audiocraft.models import MusicGen
 
-# Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 logger.debug("Starting FastAPI application setup")
 
 model_size = 'small'
-device = 'cpu'  # Force CPU to avoid GPU issues
+#device = 'cpu'  # Force CPU to avoid GPU issues
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 model = None
 
 @asynccontextmanager
@@ -55,7 +56,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Mount static folder (optional, kept for compatibility)
 app.mount("/generated", StaticFiles(directory="generated"), name="generated")
 
 # CORS
@@ -119,4 +119,4 @@ async def serve_audio(file_name: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     logger.debug(f"Serving audio file: {file_path}")
-    return FileResponse(file_path, media_type="audio/wav", headers={"Accept-Ranges": "bytes"})
+    return FileResponse(file_path, media_type="audio/wav", headers={"Accept-Ranges": "bytes", "Content-Length": str(os.path.getsize(file_path))})
