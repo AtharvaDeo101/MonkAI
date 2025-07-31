@@ -115,8 +115,8 @@ export default function LandingPage() {
   ]
 
   const stats = [
-    { number: "50K+", label: "Tracks Generated", color: "text-[#5F85DB]" },
-    { number: "10K+", label: "Happy Users", color: "text-[#FF6B6B]" },
+    { number: "10+", label: "Tracks Generated", color: "text-[#5F85DB]" },
+    { number: "10+", label: "Happy Users", color: "text-[#FF6B6B]" },
     { number: "99.9%", label: "Uptime", color: "text-[#4ECDC4]" },
     { number: "24/7", label: "Support", color: "text-[#FFD93D]" },
   ]

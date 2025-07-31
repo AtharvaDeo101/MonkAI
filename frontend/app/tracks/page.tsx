@@ -2,9 +2,21 @@
 
 import { motion } from "framer-motion"
 import { useState } from "react"
-import { Search, Play, Pause, Download, Share2, Heart, MoreHorizontal, Filter, Sparkles } from "lucide-react"
+import {
+  Search,
+  Play,
+  Pause,
+  Download,
+  Share2,
+  Heart,
+  MoreHorizontal,
+  Filter,
+  Sparkles,
+  TrendingUp,
+  Zap,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardContent as CardContent2 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Header from "@/components/layout/header"
@@ -336,6 +348,200 @@ export default function TracksPage() {
           )}
         </div>
       </div>
+
+      {/* Featured Playlists */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="mt-16"
+      >
+        <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Featured Playlists</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            {
+              title: "Workout Energy",
+              description: "High-energy tracks to power your fitness routine",
+              trackCount: 25,
+              duration: "1h 32m",
+              cover: "/placeholder.svg?height=200&width=200",
+              color: "from-[#FF6B6B] to-[#FF8E53]",
+            },
+            {
+              title: "Focus & Flow",
+              description: "Ambient sounds for deep work and concentration",
+              trackCount: 18,
+              duration: "2h 15m",
+              cover: "/placeholder.svg?height=200&width=200",
+              color: "from-[#4ECDC4] to-[#44A08D]",
+            },
+            {
+              title: "Creative Vibes",
+              description: "Inspiring melodies for your creative projects",
+              trackCount: 32,
+              duration: "1h 58m",
+              cover: "/placeholder.svg?height=200&width=200",
+              color: "from-[#5F85DB] to-[#7B68EE]",
+            },
+          ].map((playlist, index) => (
+            <motion.div
+              key={playlist.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.2 }}
+            >
+              <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="relative mb-4">
+                    <img
+                      src={playlist.cover || "/placeholder.svg"}
+                      alt={playlist.title}
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-t ${playlist.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
+                    ></div>
+                    <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Play className="w-12 h-12 text-[#FAF7F0]" />
+                    </div>
+                  </div>
+                  <h3 className="text-[#FAF7F0] font-semibold text-lg mb-2">{playlist.title}</h3>
+                  <p className="text-[#FAF7F0]/60 text-sm mb-3 leading-relaxed">{playlist.description}</p>
+                  <div className="flex justify-between text-sm text-[#FAF7F0]/60">
+                    <span>{playlist.trackCount} tracks</span>
+                    <span>{playlist.duration}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Top Charts */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="mt-16"
+      >
+        <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Top Charts This Week</h2>
+        <div className="grid lg:grid-cols-2 gap-8">
+          <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-[#5F85DB]" />
+                Most Popular
+              </CardTitle>
+            </CardHeader>
+            <CardContent2>
+              <div className="space-y-4">
+                {[
+                  { rank: 1, title: "Epic Orchestral Theme", plays: "45.2K", trend: "+12%" },
+                  { rank: 2, title: "Synthwave Nights", plays: "38.7K", trend: "+8%" },
+                  { rank: 3, title: "Acoustic Serenity", plays: "32.1K", trend: "+15%" },
+                  { rank: 4, title: "Electronic Pulse", plays: "28.9K", trend: "+5%" },
+                  { rank: 5, title: "Jazz Cafe Ambience", plays: "25.3K", trend: "+22%" },
+                ].map((track) => (
+                  <div
+                    key={track.rank}
+                    className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] rounded-lg flex items-center justify-center text-[#FAF7F0] font-bold text-sm">
+                      {track.rank}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[#FAF7F0] font-medium">{track.title}</p>
+                      <p className="text-[#FAF7F0]/60 text-sm">{track.plays} plays</p>
+                    </div>
+                    <div className="text-[#4ECDC4] text-sm font-medium">{track.trend}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent2>
+          </Card>
+
+          <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
+                <Zap className="w-6 h-6 text-[#FFD93D]" />
+                Trending Now
+              </CardTitle>
+            </CardHeader>
+            <CardContent2>
+              <div className="space-y-4">
+                {[
+                  { title: "Lo-Fi Study Beats", genre: "Lo-Fi", growth: "+156%" },
+                  { title: "Cyberpunk Action", genre: "Electronic", growth: "+134%" },
+                  { title: "Nature Soundscape", genre: "Ambient", growth: "+98%" },
+                  { title: "Retro Gaming", genre: "Chiptune", growth: "+87%" },
+                  { title: "Corporate Motivation", genre: "Pop", growth: "+76%" },
+                ].map((track, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B] rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-[#000000]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[#FAF7F0] font-medium">{track.title}</p>
+                      <p className="text-[#FAF7F0]/60 text-sm">{track.genre}</p>
+                    </div>
+                    <div className="text-[#FFD93D] text-sm font-medium">{track.growth}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent2>
+          </Card>
+        </div>
+      </motion.div>
+
+      {/* Music Categories */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="mt-16"
+      >
+        <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Browse by Category</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {[
+            { name: "Electronic", icon: "🎛️", count: "1.2K", color: "from-[#5F85DB] to-[#7B68EE]" },
+            { name: "Ambient", icon: "🌊", count: "890", color: "from-[#4ECDC4] to-[#44A08D]" },
+            { name: "Rock", icon: "🎸", count: "1.1K", color: "from-[#FF6B6B] to-[#FF8E53]" },
+            { name: "Jazz", icon: "🎷", count: "650", color: "from-[#FFD93D] to-[#FF6B6B]" },
+            { name: "Classical", icon: "🎼", count: "420", color: "from-[#9B59B6] to-[#8E44AD]" },
+            { name: "Hip Hop", icon: "🎤", count: "780", color: "from-[#E67E22] to-[#D35400]" },
+            { name: "Pop", icon: "⭐", count: "950", color: "from-[#E91E63] to-[#AD1457]" },
+            { name: "Folk", icon: "🪕", count: "340", color: "from-[#795548] to-[#5D4037]" },
+            { name: "Reggae", icon: "🌴", count: "280", color: "from-[#4CAF50] to-[#388E3C]" },
+            { name: "Blues", icon: "🎺", count: "190", color: "from-[#607D8B] to-[#455A64]" },
+            { name: "Country", icon: "🤠", count: "310", color: "from-[#FF9800] to-[#F57C00]" },
+            { name: "World", icon: "🌍", count: "520", color: "from-[#00BCD4] to-[#0097A7]" },
+          ].map((category, index) => (
+            <motion.div
+              key={category.name}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: index * 0.05 }}
+              className="cursor-pointer group"
+            >
+              <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300">
+                <CardContent className="p-4 text-center">
+                  <div
+                    className={`w-12 h-12 bg-gradient-to-r ${category.color} rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}
+                  >
+                    <span className="text-xl">{category.icon}</span>
+                  </div>
+                  <h3 className="text-[#FAF7F0] font-medium text-sm mb-1">{category.name}</h3>
+                  <p className="text-[#FAF7F0]/60 text-xs">{category.count} tracks</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
     </div>
   )
 }
