@@ -10,10 +10,10 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from audiocraft.models import MusicGen
 import aiohttp
-import urllib.parse
 from dotenv import load_dotenv
+import time
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG)
@@ -25,6 +25,12 @@ model_size = 'small'
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 model = None
+JAMENDO_CLIENT_ID = os.getenv("JAMENDO_CLIENT_ID")
+
+# Validate environment variables
+if not JAMENDO_CLIENT_ID:
+    logger.error("JAMENDO_CLIENT_ID not set in .env file")
+    raise ValueError("JAMENDO_CLIENT_ID is required")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -72,7 +78,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request model
+# Request model for MusicGen
 class MusicRequest(BaseModel):
     description: str
     duration: float = 15.0
@@ -107,7 +113,8 @@ async def generate_music(request: MusicRequest, _=Depends(get_model)):
         
         return {
             "message": f"Music generated and saved to {output_path}",
-            "fileName": file_name
+            "fileName": file_name,
+            "audioUrl": f"/generated/{file_name}"
         }
     
     except Exception as e:
@@ -126,84 +133,58 @@ async def serve_audio(file_name: str):
     logger.debug(f"Serving audio file: {file_path}")
     return FileResponse(file_path, media_type="audio/wav", headers={"Accept-Ranges": "bytes", "Content-Length": str(os.path.getsize(file_path))})
 
-async def download_audio(audio_url: str, file_name: str, api_key: str) -> str:
-    output_path = os.path.join("generated", file_name)
-    async with aiohttp.ClientSession() as session:
-        async with session.get(audio_url, headers={"x-freepik-api-key": api_key}) as resp:
-            if resp.status == 200:
-                with open(output_path, 'wb') as f:
-                    f.write(await resp.read())
-                return output_path
-            raise HTTPException(status_code=500, detail=f"Failed to download audio: {await resp.text()}")
-
-@app.get("/freepik/tracks")
-async def get_freepik_tracks(q: str = "music", per_page: int = 20):
-    api_key = os.getenv('FREEPIK_API_KEY')
-    if not api_key:
-        logger.error("FREEPIK_API_KEY environment variable not set")
-        raise HTTPException(status_code=500, detail="Freepik API key not configured")
-    
-    logger.debug(f"FREEPIK_API_KEY: {api_key[:4]}**** (masked for security)")
-    logger.debug(f"Fetching Freepik tracks with query: q={q}, per_page={per_page}, type of per_page: {type(per_page)}")
-    
+@app.get("/jamendo/tracks")
+async def get_jamendo_tracks(q: str = "", limit: int = 20):
     try:
         async with aiohttp.ClientSession() as session:
-            encoded_query = urllib.parse.quote(q)
-            url = f"https://api.freepik.com/v1/resources?term={encoded_query}&content_type=audio&per_page={per_page}"
-            headers = {"x-freepik-api-key": api_key}
-            logger.debug(f"Requesting Freepik API: {url}")
-            async with session.get(url, headers=headers) as response:
-                if response.status != 200:
-                    response_text = await response.text()
-                    logger.error(f"Freepik API request failed with status {response.status}: {response_text}")
-                    raise HTTPException(status_code=response.status, detail=f"Failed to fetch tracks from Freepik: {response_text}")
-                
-                data = await response.json()
-                logger.debug(f"Freepik API response: {data}")
-                if 'data' not in data:
-                    logger.error("Invalid response format from Freepik API")
-                    raise HTTPException(status_code=500, detail="Invalid response from Freepik API: 'data' not found")
-                
-                tracks = []
-                for hit in data.get('data', []):
-                    duration_secs = hit.get('duration', 0)
-                    license_type = hit.get('licenses', [{}])[0].get('type', 'freemium')
-                    attribution_required = license_type in ['freemium'] and 'premium' not in hit.get('products', [])
-                    audio_url = hit.get('audio', hit.get('url', ''))
-                    track = {
-                        'id': hit.get('id'),
-                        'title': hit.get('title', 'Untitled Track'),
-                        'artist': hit.get('author', {}).get('name', 'Unknown Artist'),
-                        'duration': f"{duration_secs // 60}:{str(duration_secs % 60).zfill(2)}",
-                        'cover': hit.get('image', {}).get('source', {}).get('url', '/placeholder.svg?height=80&width=80'),
-                        'tags': [tag.strip() for tag in hit.get('keywords', []) if tag.strip()],
-                        'plays': str(hit.get('stats', {}).get('downloads', 0)),
-                        'color': "from-[#5F85DB] to-[#7B68EE]",
-                        'audioUrl': '',
-                        'attribution': {
-                            'required': attribution_required,
-                            'text': 'Music by Freepik',
-                            'link': 'https://www.freepik.com/audio'
-                        } if attribution_required else None
-                    }
-                    if audio_url:
-                        audio_path = await download_audio(audio_url, f"{hit.get('id')}.mp3", api_key)
-                        track['audioUrl'] = f"/generated/{hit.get('id')}.mp3"
-                    tracks.append(track)
-                
-                logger.info(f"Successfully fetched {len(tracks)} tracks from Freepik")
-                return {'tracks': tracks}
-    
-    except ValueError as ve:
-        logger.error(f"ValueError in get_freepik_tracks: {str(ve)}")
-        raise HTTPException(status_code=400, detail=f"Invalid query parameter: {str(ve)}")
+            params = {
+                "client_id": JAMENDO_CLIENT_ID,
+                "format": "json",
+                "limit": limit,
+                "tags": q if q else None,
+                "include": "musicinfo",
+                "order": "popularity_total"
+            }
+            logger.debug(f"Fetching Jamendo tracks with params: {params}")
+            for attempt in range(3):  # Retry logic for transient errors
+                try:
+                    async with session.get("https://api.jamendo.com/v3.0/tracks/", params=params) as response:
+                        if response.status != 200:
+                            error_text = await response.text()
+                            logger.error(f"Jamendo API error: {response.status} - {error_text}")
+                            raise HTTPException(status_code=response.status, detail=f"Jamendo API error: {error_text}")
+                        data = await response.json()
+                        if data["headers"]["status"] != "success":
+                            error_message = data["headers"].get("error_message", "Unknown error")
+                            logger.error(f"Jamendo API error: {error_message}")
+                            raise HTTPException(status_code=500, detail=f"Jamendo API error: {error_message}")
+                        
+                        tracks = []
+                        for item in data.get("results", []):
+                            tracks.append({
+                                "id": item["id"],
+                                "title": item["name"],
+                                "artist": item["artist_name"],
+                                "duration": f"{item['duration'] // 60}:{item['duration'] % 60:02d}",
+                                "cover": item.get("album_image", "/placeholder.svg?height=80&width=80"),
+                                "tags": item.get("musicinfo", {}).get("tags", {}).get("genres", []),
+                                "plays": str(item.get("stats", {}).get("playcounts", 0)),
+                                "color": "from-[#5F85DB] to-[#7B68EE]",
+                                "audioUrl": item["audio"],
+                                "attribution": {
+                                    "required": True,
+                                    "text": f"Music by {item['artist_name']} on Jamendo",
+                                    "link": item["shareurl"],
+                                }
+                            })
+                        logger.info(f"Fetched {len(tracks)} tracks from Jamendo")
+                        return {"tracks": tracks}
+                except aiohttp.ClientError as e:
+                    if attempt < 2:
+                        logger.warning(f"Retrying Jamendo request (attempt {attempt + 1}/3): {str(e)}")
+                        time.sleep(2 ** attempt)
+                        continue
+                    raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
     except Exception as e:
-        logger.error(f"Error fetching Freepik tracks: {str(e)}")
+        logger.error(f"Error fetching Jamendo tracks: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch tracks: {str(e)}")
-
-@app.get("/download/{track_id}")
-async def download_track(track_id: str):
-    file_path = os.path.join("generated", f"{track_id}.mp3")
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Track not found")
-    return FileResponse(file_path, media_type="audio/mp3", filename=f"{track_id}.mp3")

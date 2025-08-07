@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Search,
   Play,
@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardContent as CardContent2 } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Header from "@/components/layout/header"
@@ -74,60 +74,128 @@ function ElegantShape({
   )
 }
 
+interface Track {
+  id: string
+  title: string
+  artist: string
+  duration: string
+  cover: string
+  tags: string[]
+  plays: string
+  color: string
+  audioUrl: string
+  attribution: { required: boolean; text: string; link: string }
+}
+
+interface Playlist {
+  title: string
+  description: string
+  trackCount: number
+  duration: string
+  cover: string
+  color: string
+}
+
+interface Category {
+  name: string
+  icon: string
+  count: string
+  color: string
+}
+
 export default function TracksPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [playingTrack, setPlayingTrack] = useState<number | null>(null)
+  const [tracks, setTracks] = useState<Track[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [playingTrack, setPlayingTrack] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
 
-  const tracks = [
+  // Fetch tracks from Jamendo API via Next.js API route
+  useEffect(() => {
+    async function fetchTracks() {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const response = await fetch(`/api/tracks?q=${encodeURIComponent(searchQuery)}&limit=20`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        })
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+        }
+        const data = await response.json()
+        if (!data.tracks) {
+          throw new Error("No tracks found in response")
+        }
+        setTracks(data.tracks)
+      } catch (err: any) {
+        const errorMessage = err.message || "Unknown error occurred"
+        console.error("Fetch tracks error:", {
+          message: errorMessage,
+          query: searchQuery,
+          stack: err.stack,
+        })
+        setError(`Failed to load tracks: ${errorMessage}. Please try again or contact support.`)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchTracks()
+  }, [searchQuery])
+
+  // Handle play/pause for tracks
+  const handlePlay = (trackId: string, audioUrl: string) => {
+    if (playingTrack === trackId) {
+      audioRef.current?.pause()
+      setPlayingTrack(null)
+    } else {
+      if (audioRef.current) {
+        audioRef.current.src = audioUrl
+        audioRef.current.play().catch((err) => console.error("Playback error:", err))
+      }
+      setPlayingTrack(trackId)
+    }
+  }
+
+  // Static genres (could be fetched dynamically from backend)
+  const genres: Category[] = [
+    { name: "Electronic", icon: "🎛️", count: "1.2K", color: "bg-gradient-to-r from-[#5F85DB] to-[#7B68EE]" },
+    { name: "Ambient", icon: "🌊", count: "890", color: "bg-gradient-to-r from-[#4ECDC4] to-[#44A08D]" },
+    { name: "Jazz", icon: "🎷", count: "650", color: "bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53]" },
+    { name: "Rock", icon: "🎸", count: "1.1K", color: "bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B]" },
+  ]
+
+  // Static playlists (could be fetched from /playlists endpoint)
+  const playlists: Playlist[] = [
     {
-      id: 1,
-      title: "Midnight Synthwave",
-      artist: "Digital Dreams",
-      duration: "3:24",
-      cover: "/placeholder.svg?height=80&width=80",
-      tags: ["Electronic", "Synthwave", "Retro"],
-      plays: "12.5K",
-      color: "from-[#5F85DB] to-[#7B68EE]",
-    },
-    {
-      id: 2,
-      title: "Forest Ambience",
-      artist: "Nature Sounds",
-      duration: "5:12",
-      cover: "/placeholder.svg?height=80&width=80",
-      tags: ["Ambient", "Nature", "Relaxing"],
-      plays: "8.2K",
-      color: "from-[#4ECDC4] to-[#44A08D]",
-    },
-    {
-      id: 3,
-      title: "Urban Jazz Fusion",
-      artist: "City Collective",
-      duration: "4:33",
-      cover: "/placeholder.svg?height=80&width=80",
-      tags: ["Jazz", "Fusion", "Urban"],
-      plays: "15.7K",
+      title: "Workout Energy",
+      description: "High-energy tracks to power your fitness routine",
+      trackCount: 25,
+      duration: "1h 32m",
+      cover: "/placeholder.svg?height=200&width=200",
       color: "from-[#FF6B6B] to-[#FF8E53]",
     },
     {
-      id: 4,
-      title: "Epic Orchestral",
-      artist: "Symphony AI",
-      duration: "6:45",
-      cover: "/placeholder.svg?height=80&width=80",
-      tags: ["Orchestral", "Epic", "Cinematic"],
-      plays: "22.1K",
-      color: "from-[#FFD93D] to-[#FF6B6B]",
+      title: "Focus & Flow",
+      description: "Ambient sounds for deep work and concentration",
+      trackCount: 18,
+      duration: "2h 15m",
+      cover: "/placeholder.svg?height=200&width=200",
+      color: "from-[#4ECDC4] to-[#44A08D]",
+    },
+    {
+      title: "Creative Vibes",
+      description: "Inspiring melodies for your creative projects",
+      trackCount: 32,
+      duration: "1h 58m",
+      cover: "/placeholder.svg?height=200&width=200",
+      color: "from-[#5F85DB] to-[#7B68EE]",
     },
   ]
 
-  const genres = [
-    { name: "Electronic", count: 1240, color: "bg-gradient-to-r from-[#5F85DB] to-[#7B68EE]" },
-    { name: "Ambient", count: 890, color: "bg-gradient-to-r from-[#4ECDC4] to-[#44A08D]" },
-    { name: "Jazz", count: 650, color: "bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53]" },
-    { name: "Rock", count: 1100, color: "bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B]" },
-  ]
-
+  // Filter tracks based on search query
   const filteredTracks = tracks.filter(
     (track) =>
       track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -137,6 +205,7 @@ export default function TracksPage() {
 
   return (
     <div className="min-h-screen bg-[#000000] relative overflow-hidden">
+      <audio ref={audioRef} />
       <div className="absolute inset-0 bg-gradient-to-br from-[#5F85DB]/[0.08] via-[#FF6B6B]/[0.05] to-[#4ECDC4]/[0.08] blur-3xl" />
 
       {/* Geometric Shapes */}
@@ -188,7 +257,7 @@ export default function TracksPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#5F85DB]/10 to-[#FF6B6B]/10 border border-[#5F85DB]/20 mb-4">
               <Sparkles className="w-5 h-5 text-[#FFD93D]" />
-              <span className="text-sm text-[#FAF7F0]/80 tracking-wide">Copyright-Free Music Library</span>
+              <span className="text-sm text-[#FAF7F0]/80 tracking-wide">Royalty-Free Music Library</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FAF7F0] via-[#5F85DB] to-[#FF6B6B] mb-4">
               Discover Amazing Tracks
@@ -211,6 +280,7 @@ export default function TracksPage() {
                 variant="outline"
                 size="sm"
                 className={`${genre.color} border-transparent text-[#FAF7F0] hover:opacity-80`}
+                onClick={() => setSearchQuery(genre.name)}
               >
                 {genre.name} ({genre.count})
               </Button>
@@ -243,305 +313,294 @@ export default function TracksPage() {
           </motion.div>
 
           {/* Tracks Grid */}
-          <div className="grid gap-4">
-            {filteredTracks.map((track, index) => (
-              <motion.div
-                key={track.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 * index }}
+          {isLoading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-12"
+            >
+              <p className="text-[#FAF7F0]/60 text-lg">Loading tracks...</p>
+            </motion.div>
+          ) : error ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-12"
+            >
+              <p className="text-[#FF6B6B] text-lg">{error}</p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => setSearchQuery(searchQuery)} // Trigger refetch
               >
-                <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      {/* Album Cover with Visualizer */}
-                      <div className="relative">
-                        <img
-                          src={track.cover || "/placeholder.svg"}
-                          alt={track.title}
-                          className="w-20 h-20 rounded-lg"
-                        />
-                        <div
-                          className={`absolute inset-0 bg-gradient-to-r ${track.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
-                        ></div>
-                        {playingTrack === track.id ? (
-                          <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
-                            <MusicVisualizer isPlaying={true} />
-                          </div>
-                        ) : (
-                          <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Play className="w-6 h-6 text-[#FAF7F0]" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Track Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-[#FAF7F0] font-semibold text-lg truncate">{track.title}</h3>
-                        <p className="text-[#FAF7F0]/60 mb-2">{track.artist}</p>
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {track.tags.map((tag, tagIndex) => (
-                            <Badge
-                              key={tag}
-                              variant="secondary"
-                              className={`bg-gradient-to-r ${track.color} bg-opacity-20 text-[#FAF7F0]/80 text-xs border-transparent`}
-                            >
-                              #{tag}
-                            </Badge>
-                          ))}
+                Retry
+              </Button>
+            </motion.div>
+          ) : (
+            <div className="grid gap-4">
+              {filteredTracks.map((track, index) => (
+                <motion.div
+                  key={track.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 * index }}
+                >
+                  <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        {/* Album Cover with Visualizer */}
+                        <div className="relative">
+                          <img
+                            src={track.cover || "/placeholder.svg?height=80&width=80"}
+                            alt={track.title}
+                            className="w-20 h-20 rounded-lg"
+                          />
+                          <div
+                            className={`absolute inset-0 bg-gradient-to-r ${track.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
+                          ></div>
+                          {playingTrack === track.id ? (
+                            <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
+                              <MusicVisualizer isPlaying={true} />
+                            </div>
+                          ) : (
+                            <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Play className="w-6 h-6 text-[#FAF7F0]" />
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-[#FAF7F0]/60">
-                          <span>{track.duration}</span>
-                          <span>{track.plays} plays</span>
+
+                        {/* Track Info */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-[#FAF7F0] font-semibold text-lg truncate">{track.title}</h3>
+                          <p className="text-[#FAF7F0]/60 mb-2">{track.artist}</p>
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {track.tags.map((tag, tagIndex) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className={`bg-gradient-to-r ${track.color} bg-opacity-20 text-[#FAF7F0]/80 text-xs border-transparent`}
+                              >
+                                #{tag}
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-[#FAF7F0]/60">
+                            <span>{track.duration}</span>
+                            <span>{track.plays} plays</span>
+                          </div>
+                          {track.attribution?.required && (
+                            <p className="text-[#FAF7F0]/40 text-xs mt-1">
+                              {track.attribution.text} |{" "}
+                              <a
+                                href={track.attribution.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-[#5F85DB]"
+                              >
+                                Jamendo
+                              </a>
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handlePlay(track.id, track.audioUrl)}
+                            className={`bg-gradient-to-r ${track.color} hover:opacity-90`}
+                          >
+                            {playingTrack === track.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-[#FAF7F0]/60 hover:text-[#FF6B6B] hover:bg-[#FF6B6B]/10"
+                          >
+                            <Heart className="w-4 h-4" />
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-[#FAF7F0]/60 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10"
+                            onClick={() => window.location.href = track.audioUrl} // Use audiodownload if needed
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-[#FAF7F0]/60 hover:text-[#5F85DB] hover:bg-[#5F85DB]/10"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+
+                          <Button size="sm" variant="ghost" className="text-[#FAF7F0]/60 hover:text-[#FAF7F0]">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}
-                          className={`bg-gradient-to-r ${track.color} hover:opacity-90`}
-                        >
-                          {playingTrack === track.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-[#FAF7F0]/60 hover:text-[#FF6B6B] hover:bg-[#FF6B6B]/10"
-                        >
-                          <Heart className="w-4 h-4" />
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-[#FAF7F0]/60 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-[#FAF7F0]/60 hover:text-[#5F85DB] hover:bg-[#5F85DB]/10"
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </Button>
-
-                        <Button size="sm" variant="ghost" className="text-[#FAF7F0]/60 hover:text-[#FAF7F0]">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-
-          {filteredTracks.length === 0 && (
+          {filteredTracks.length === 0 && !isLoading && !error && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
               <p className="text-[#FAF7F0]/60 text-lg">No tracks found matching your search.</p>
             </motion.div>
           )}
+
+          {/* Featured Playlists */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="mt-16"
+          >
+            <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Featured Playlists</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {playlists.map((playlist, index) => (
+                <motion.div
+                  key={playlist.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.2 }}
+                >
+                  <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="relative mb-4">
+                        <img
+                          src={playlist.cover || "/placeholder.svg"}
+                          alt={playlist.title}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-t ${playlist.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
+                        ></div>
+                        <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Play className="w-12 h-12 text-[#FAF7F0]" />
+                        </div>
+                      </div>
+                      <h3 className="text-[#FAF7F0] font-semibold text-lg mb-2">{playlist.title}</h3>
+                      <p className="text-[#FAF7F0]/60 text-sm mb-3 leading-relaxed">{playlist.description}</p>
+                      <div className="flex justify-between text-sm text-[#FAF7F0]/60">
+                        <span>{playlist.trackCount} tracks</span>
+                        <span>{playlist.duration}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Top Charts */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="mt-16"
+          >
+            <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Top Charts This Week</h2>
+            <div className="grid lg:grid-cols-2 gap-8">
+              <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
+                    <TrendingUp className="w-6 h-6 text-[#5F85DB]" />
+                    Most Popular
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {tracks.slice(0, 5).map((track, index) => (
+                      <div
+                        key={track.id}
+                        className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] rounded-lg flex items-center justify-center text-[#FAF7F0] font-bold text-sm">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[#FAF7F0] font-medium">{track.title}</p>
+                          <p className="text-[#FAF7F0]/60 text-sm">{track.plays} plays</p>
+                        </div>
+                        <div className="text-[#4ECDC4] text-sm font-medium">+{Math.floor(Math.random() * 20)}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
+                    <Zap className="w-6 h-6 text-[#FFD93D]" />
+                    Trending Now
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {tracks.slice(0, 5).map((track, index) => (
+                      <div
+                        key={track.id}
+                        className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B] rounded-lg flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4 text-[#000000]" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[#FAF7F0] font-medium">{track.title}</p>
+                          <p className="text-[#FAF7F0]/60 text-sm">{track.tags[0] || "Unknown"}</p>
+                        </div>
+                        <div className="text-[#FFD93D] text-sm font-medium">+{Math.floor(Math.random() * 100)}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </motion.div>
+
+          {/* Music Categories */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="mt-16"
+          >
+            <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Browse by Category</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {genres.map((category, index) => (
+                <motion.div
+                  key={category.name}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                  className="cursor-pointer group"
+                >
+                  <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300">
+                    <CardContent className="p-4 text-center">
+                      <div
+                        className={`w-12 h-12 bg-gradient-to-r ${category.color} rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}
+                      >
+                        <span className="text-xl">{category.icon}</span>
+                      </div>
+                      <h3 className="text-[#FAF7F0] font-medium text-sm mb-1">{category.name}</h3>
+                      <p className="text-[#FAF7F0]/60 text-xs">{category.count} tracks</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </div>
-
-      {/* Featured Playlists */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="mt-16"
-      >
-        <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Featured Playlists</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            {
-              title: "Workout Energy",
-              description: "High-energy tracks to power your fitness routine",
-              trackCount: 25,
-              duration: "1h 32m",
-              cover: "/placeholder.svg?height=200&width=200",
-              color: "from-[#FF6B6B] to-[#FF8E53]",
-            },
-            {
-              title: "Focus & Flow",
-              description: "Ambient sounds for deep work and concentration",
-              trackCount: 18,
-              duration: "2h 15m",
-              cover: "/placeholder.svg?height=200&width=200",
-              color: "from-[#4ECDC4] to-[#44A08D]",
-            },
-            {
-              title: "Creative Vibes",
-              description: "Inspiring melodies for your creative projects",
-              trackCount: 32,
-              duration: "1h 58m",
-              cover: "/placeholder.svg?height=200&width=200",
-              color: "from-[#5F85DB] to-[#7B68EE]",
-            },
-          ].map((playlist, index) => (
-            <motion.div
-              key={playlist.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
-            >
-              <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="relative mb-4">
-                    <img
-                      src={playlist.cover || "/placeholder.svg"}
-                      alt={playlist.title}
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-t ${playlist.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
-                    ></div>
-                    <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Play className="w-12 h-12 text-[#FAF7F0]" />
-                    </div>
-                  </div>
-                  <h3 className="text-[#FAF7F0] font-semibold text-lg mb-2">{playlist.title}</h3>
-                  <p className="text-[#FAF7F0]/60 text-sm mb-3 leading-relaxed">{playlist.description}</p>
-                  <div className="flex justify-between text-sm text-[#FAF7F0]/60">
-                    <span>{playlist.trackCount} tracks</span>
-                    <span>{playlist.duration}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Top Charts */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="mt-16"
-      >
-        <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Top Charts This Week</h2>
-        <div className="grid lg:grid-cols-2 gap-8">
-          <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-[#5F85DB]" />
-                Most Popular
-              </CardTitle>
-            </CardHeader>
-            <CardContent2>
-              <div className="space-y-4">
-                {[
-                  { rank: 1, title: "Epic Orchestral Theme", plays: "45.2K", trend: "+12%" },
-                  { rank: 2, title: "Synthwave Nights", plays: "38.7K", trend: "+8%" },
-                  { rank: 3, title: "Acoustic Serenity", plays: "32.1K", trend: "+15%" },
-                  { rank: 4, title: "Electronic Pulse", plays: "28.9K", trend: "+5%" },
-                  { rank: 5, title: "Jazz Cafe Ambience", plays: "25.3K", trend: "+22%" },
-                ].map((track) => (
-                  <div
-                    key={track.rank}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] rounded-lg flex items-center justify-center text-[#FAF7F0] font-bold text-sm">
-                      {track.rank}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[#FAF7F0] font-medium">{track.title}</p>
-                      <p className="text-[#FAF7F0]/60 text-sm">{track.plays} plays</p>
-                    </div>
-                    <div className="text-[#4ECDC4] text-sm font-medium">{track.trend}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent2>
-          </Card>
-
-          <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
-                <Zap className="w-6 h-6 text-[#FFD93D]" />
-                Trending Now
-              </CardTitle>
-            </CardHeader>
-            <CardContent2>
-              <div className="space-y-4">
-                {[
-                  { title: "Lo-Fi Study Beats", genre: "Lo-Fi", growth: "+156%" },
-                  { title: "Cyberpunk Action", genre: "Electronic", growth: "+134%" },
-                  { title: "Nature Soundscape", genre: "Ambient", growth: "+98%" },
-                  { title: "Retro Gaming", genre: "Chiptune", growth: "+87%" },
-                  { title: "Corporate Motivation", genre: "Pop", growth: "+76%" },
-                ].map((track, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B] rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 text-[#000000]" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[#FAF7F0] font-medium">{track.title}</p>
-                      <p className="text-[#FAF7F0]/60 text-sm">{track.genre}</p>
-                    </div>
-                    <div className="text-[#FFD93D] text-sm font-medium">{track.growth}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent2>
-          </Card>
-        </div>
-      </motion.div>
-
-      {/* Music Categories */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="mt-16"
-      >
-        <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Browse by Category</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {[
-            { name: "Electronic", icon: "🎛️", count: "1.2K", color: "from-[#5F85DB] to-[#7B68EE]" },
-            { name: "Ambient", icon: "🌊", count: "890", color: "from-[#4ECDC4] to-[#44A08D]" },
-            { name: "Rock", icon: "🎸", count: "1.1K", color: "from-[#FF6B6B] to-[#FF8E53]" },
-            { name: "Jazz", icon: "🎷", count: "650", color: "from-[#FFD93D] to-[#FF6B6B]" },
-            { name: "Classical", icon: "🎼", count: "420", color: "from-[#9B59B6] to-[#8E44AD]" },
-            { name: "Hip Hop", icon: "🎤", count: "780", color: "from-[#E67E22] to-[#D35400]" },
-            { name: "Pop", icon: "⭐", count: "950", color: "from-[#E91E63] to-[#AD1457]" },
-            { name: "Folk", icon: "🪕", count: "340", color: "from-[#795548] to-[#5D4037]" },
-            { name: "Reggae", icon: "🌴", count: "280", color: "from-[#4CAF50] to-[#388E3C]" },
-            { name: "Blues", icon: "🎺", count: "190", color: "from-[#607D8B] to-[#455A64]" },
-            { name: "Country", icon: "🤠", count: "310", color: "from-[#FF9800] to-[#F57C00]" },
-            { name: "World", icon: "🌍", count: "520", color: "from-[#00BCD4] to-[#0097A7]" },
-          ].map((category, index) => (
-            <motion.div
-              key={category.name}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: index * 0.05 }}
-              className="cursor-pointer group"
-            >
-              <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300">
-                <CardContent className="p-4 text-center">
-                  <div
-                    className={`w-12 h-12 bg-gradient-to-r ${category.color} rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <span className="text-xl">{category.icon}</span>
-                  </div>
-                  <h3 className="text-[#FAF7F0] font-medium text-sm mb-1">{category.name}</h3>
-                  <p className="text-[#FAF7F0]/60 text-xs">{category.count} tracks</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
     </div>
   )
 }
