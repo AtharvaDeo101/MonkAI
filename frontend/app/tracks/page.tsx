@@ -12,15 +12,12 @@ import {
   MoreHorizontal,
   Filter,
   Sparkles,
-  TrendingUp,
-  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Header from "@/components/layout/header"
-import MusicVisualizer from "@/components/music-visualizer"
 import { cn } from "@/lib/utils"
 
 function ElegantShape({
@@ -87,30 +84,14 @@ interface Track {
   attribution: { required: boolean; text: string; link: string }
 }
 
-interface Playlist {
-  title: string
-  description: string
-  trackCount: number
-  duration: string
-  cover: string
-  color: string
-}
-
-interface Category {
-  name: string
-  icon: string
-  count: string
-  color: string
-}
-
 export default function TracksPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [tracks, setTracks] = useState<Track[]>([])
-  const [genres, setGenres] = useState<Category[]>([])
-  const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [playingTrack, setPlayingTrack] = useState<string | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
   const audioRef = useRef<HTMLAudioElement>(null)
 
   // Fetch tracks from Jamendo API via Next.js API route
@@ -132,39 +113,6 @@ export default function TracksPage() {
           throw new Error("No tracks found in response")
         }
         setTracks(data.tracks)
-
-        // Derive genres from track tags
-        const genreCounts: { [key: string]: number } = {}
-        data.tracks.forEach((track: Track) => {
-          track.tags.forEach((tag) => {
-            genreCounts[tag] = (genreCounts[tag] || 0) + 1
-          })
-        })
-        const genreColors = [
-          "bg-gradient-to-r from-[#5F85DB] to-[#7B68EE]",
-          "bg-gradient-to-r from-[#4ECDC4] to-[#44A08D]",
-          "bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53]",
-          "bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B]",
-        ]
-        const genreIcons = ["🎛️", "🌊", "🎷", "🎸"]
-        const derivedGenres = Object.entries(genreCounts).slice(0, 4).map(([name, count], index) => ({
-          name,
-          icon: genreIcons[index % genreIcons.length],
-          count: count.toString(),
-          color: genreColors[index % genreColors.length],
-        }))
-        setGenres(derivedGenres)
-
-        // Mock playlists (Jamendo API doesn't provide playlists, so we create some based on genres)
-        const mockPlaylists: Playlist[] = derivedGenres.map((genre, index) => ({
-          title: `${genre.name} Hits`,
-          description: `Top tracks in ${genre.name.toLowerCase()} genre`,
-          trackCount: Math.floor(Math.random() * 20) + 10,
-          duration: `${Math.floor(Math.random() * 2) + 1}h ${Math.floor(Math.random() * 60)}m`,
-          cover: `/placeholder.svg?height=200&width=200`,
-          color: genre.color,
-        }))
-        setPlaylists(mockPlaylists)
       } catch (err: any) {
         const errorMessage = err.message || "Unknown error occurred"
         console.error("Fetch tracks error:", {
@@ -180,6 +128,25 @@ export default function TracksPage() {
     fetchTracks()
   }, [searchQuery])
 
+  // Update progress bar
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const updateProgress = () => {
+      setCurrentTime(audio.currentTime)
+      setDuration(audio.duration)
+    }
+
+    audio.addEventListener('timeupdate', updateProgress)
+    audio.addEventListener('loadedmetadata', updateProgress)
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateProgress)
+      audio.removeEventListener('loadedmetadata', updateProgress)
+    }
+  }, [])
+
   // Handle play/pause for tracks
   const handlePlay = (trackId: string, audioUrl: string) => {
     if (playingTrack === trackId) {
@@ -192,6 +159,21 @@ export default function TracksPage() {
       }
       setPlayingTrack(trackId)
     }
+  }
+
+  // Handle seeking
+  const handleSeek = (trackId: string, value: number) => {
+    if (playingTrack === trackId && audioRef.current) {
+      audioRef.current.currentTime = value
+      setCurrentTime(value)
+    }
+  }
+
+  // Format time for display
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`
   }
 
   // Filter tracks based on search query
@@ -266,26 +248,6 @@ export default function TracksPage() {
             </p>
           </motion.div>
 
-          {/* Genre Filter */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="flex flex-wrap gap-3 justify-center mb-6"
-          >
-            {genres.map((genre, index) => (
-              <Button
-                key={genre.name}
-                variant="outline"
-                size="sm"
-                className={`${genre.color} border-transparent text-[#FAF7F0] hover:opacity-80`}
-                onClick={() => setSearchQuery(genre.name)}
-              >
-                {genre.name} ({genre.count})
-              </Button>
-            ))}
-          </motion.div>
-
           {/* Search Bar */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -347,7 +309,7 @@ export default function TracksPage() {
                   <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
-                        {/* Album Cover with Visualizer */}
+                        {/* Album Cover */}
                         <div className="relative">
                           <img
                             src={track.cover || "/placeholder.svg?height=80&width=80"}
@@ -357,15 +319,9 @@ export default function TracksPage() {
                           <div
                             className={`absolute inset-0 bg-gradient-to-r ${track.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
                           ></div>
-                          {playingTrack === track.id ? (
-                            <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
-                              <MusicVisualizer isPlaying={true} />
-                            </div>
-                          ) : (
-                            <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <Play className="w-6 h-6 text-[#FAF7F0]" />
-                            </div>
-                          )}
+                          <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Play className="w-6 h-6 text-[#FAF7F0]" />
+                          </div>
                         </div>
 
                         {/* Track Info */}
@@ -385,7 +341,6 @@ export default function TracksPage() {
                           </div>
                           <div className="flex items-center gap-4 text-sm text-[#FAF7F0]/60">
                             <span>{track.duration}</span>
-                            <span>{track.plays} plays</span>
                           </div>
                           {track.attribution?.required && (
                             <p className="text-[#FAF7F0]/40 text-xs mt-1">
@@ -399,6 +354,25 @@ export default function TracksPage() {
                                 Jamendo
                               </a>
                             </p>
+                          )}
+                          {playingTrack === track.id && (
+                            <div className="mt-2">
+                              <div className="flex items-center gap-2 text-sm text-[#FAF7F0]/60">
+                                <span>{formatTime(currentTime)}</span>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max={duration || 100}
+                                  value={currentTime}
+                                  onChange={(e) => handleSeek(track.id, Number(e.target.value))}
+                                  className="w-full h-1 bg-[#FAF7F0]/20 rounded-full appearance-none cursor-pointer"
+                                  style={{
+                                    background: `linear-gradient(to right, #5F85DB 0%, #5F85DB ${(currentTime / (duration || 1)) * 100}%, #26282B ${(currentTime / (duration || 1)) * 100}%, #26282B 100%)`
+                                  }}
+                                />
+                                <span>{formatTime(duration)}</span>
+                              </div>
+                            </div>
                           )}
                         </div>
 
@@ -454,158 +428,6 @@ export default function TracksPage() {
               <p className="text-[#FAF7F0]/60 text-lg">No tracks found matching your search.</p>
             </motion.div>
           )}
-
-          {/* Featured Playlists */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mt-16"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Featured Playlists</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {playlists.map((playlist, index) => (
-                <motion.div
-                  key={playlist.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.2 }}
-                >
-                  <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group cursor-pointer">
-                    <CardContent className="p-6">
-                      <div className="relative mb-4">
-                        <img
-                          src={playlist.cover || "/placeholder.svg"}
-                          alt={playlist.title}
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                        <div
-                          className={`absolute inset-0 bg-gradient-to-t ${playlist.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
-                        ></div>
-                        <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Play className="w-12 h-12 text-[#FAF7F0]" />
-                        </div>
-                      </div>
-                      <h3 className="text-[#FAF7F0] font-semibold text-lg mb-2">{playlist.title}</h3>
-                      <p className="text-[#FAF7F0]/60 text-sm mb-3 leading-relaxed">{playlist.description}</p>
-                      <div className="flex justify-between text-sm text-[#FAF7F0]/60">
-                        <span>{playlist.trackCount} tracks</span>
-                        <span>{playlist.duration}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Top Charts */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mt-16"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Top Charts This Week</h2>
-            <div className="grid lg:grid-cols-2 gap-8">
-              <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
-                    <TrendingUp className="w-6 h-6 text-[#5F85DB]" />
-                    Most Popular
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {tracks
-                      .slice()
-                      .sort((a, b) => parseInt(b.plays) - parseInt(a.plays))
-                      .slice(0, 5)
-                      .map((track, index) => (
-                        <div
-                          key={track.id}
-                          className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
-                        >
-                          <div className="w-8 h-8 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] rounded-lg flex items-center justify-center text-[#FAF7F0] font-bold text-sm">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-[#FAF7F0] font-medium">{track.title}</p>
-                            <p className="text-[#FAF7F0]/60 text-sm">{track.plays} plays</p>
-                          </div>
-                          <div className="text-[#4ECDC4] text-sm font-medium">+{Math.floor(Math.random() * 20)}%</div>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-[#FAF7F0] flex items-center gap-2">
-                    <Zap className="w-6 h-6 text-[#FFD93D]" />
-                    Trending Now
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {tracks
-                      .slice()
-                      .sort(() => Math.random() - 0.5) // Randomize for trending (mocked)
-                      .slice(0, 5)
-                      .map((track, index) => (
-                        <div
-                          key={track.id}
-                          className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
-                        >
-                          <div className="w-8 h-8 bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B] rounded-lg flex items-center justify-center">
-                            <TrendingUp className="w-4 h-4 text-[#000000]" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-[#FAF7F0] font-medium">{track.title}</p>
-                            <p className="text-[#FAF7F0]/60 text-sm">{track.tags[0] || "Unknown"}</p>
-                          </div>
-                          <div className="text-[#FFD93D] text-sm font-medium">+{Math.floor(Math.random() * 100)}%</div>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </motion.div>
-
-          {/* Music Categories */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mt-16"
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-[#FAF7F0] mb-8 text-center">Browse by Category</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {genres.map((category, index) => (
-                <motion.div
-                  key={category.name}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                  className="cursor-pointer group"
-                >
-                  <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300">
-                    <CardContent className="p-4 text-center">
-                      <div
-                        className={`w-12 h-12 bg-gradient-to-r ${category.color} rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}
-                      >
-                        <span className="text-xl">{category.icon}</span>
-                      </div>
-                      <h3 className="text-[#FAF7F0] font-medium text-sm mb-1">{category.name}</h3>
-                      <p className="text-[#FAF7F0]/60 text-xs">{category.count} tracks</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
         </div>
       </div>
     </div>

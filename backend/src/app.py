@@ -193,3 +193,52 @@ async def get_jamendo_tracks(q: str = "", limit: int = 20):
     except Exception as e:
         logger.error(f"Error fetching Jamendo tracks: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch tracks: {str(e)}")
+    
+    
+@app.get("/jamendo/radios")
+async def get_jamendo_radios(limit: int = 10):
+    try:
+        async with aiohttp.ClientSession() as session:
+            params = {
+                "client_id": JAMENDO_CLIENT_ID,
+                "format": "json",
+                "limit": limit,
+                "order": "popularity_total",
+            }
+            logger.debug(f"Fetching Jamendo radios with params: {params}")
+            for attempt in range(3):  # Retry logic for transient errors
+                try:
+                    async with session.get("https://api.jamendo.com/v3.0/radios/", params=params) as response:
+                        logger.debug(f"Jamendo API response status: {response.status}")
+                        raw_data = await response.text()
+                        logger.debug(f"Jamendo API raw response: {raw_data}")
+                        if response.status != 200:
+                            logger.error(f"Jamendo API error: {response.status} - {raw_data}")
+                            raise HTTPException(status_code=response.status, detail=f"Jamendo API error: {raw_data}")
+                        data = await response.json()
+                        if data["headers"]["status"] != "success":
+                            error_message = data["headers"].get("error_message", "Unknown error")
+                            logger.error(f"Jamendo API error: {error_message}")
+                            raise HTTPException(status_code=500, detail=f"Jamendo API error: {error_message}")
+                        
+                        radios = []
+                        for item in data.get("results", []):
+                            radios.append({
+                                "id": item["id"],
+                                "title": item["name"],
+                                "description": item.get("description", f"Curated {item['name']} tracks"),
+                                "cover": item.get("image", "/placeholder.svg?height=200&width=200"),
+                                "trackCount": item.get("track_count", 0),
+                                "color": "from-[#5F85DB] to-[#7B68EE]",  # Consistent with tracks
+                            })
+                        logger.info(f"Fetched {len(radios)} radios from Jamendo")
+                        return {"radios": radios}
+                except aiohttp.ClientError as e:
+                    if attempt < 2:
+                        logger.warning(f"Retrying Jamendo request (attempt {attempt + 1}/3): {str(e)}")
+                        time.sleep(2 ** attempt)
+                        continue
+                    raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error fetching Jamendo radios: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch radios: {str(e)}")
