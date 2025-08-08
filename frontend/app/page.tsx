@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { Pacifico } from "next/font/google"
 import Link from "next/link"
+import Image from "next/image"
 import {
   Music,
   Wand2,
@@ -226,12 +227,17 @@ export default function LandingPage() {
             {/* Hero Image */}
             <motion.div custom={4} variants={fadeUpVariants} initial="hidden" animate="visible" className="relative">
               <div className="relative mx-auto max-w-2xl">
-                <img
-                  src="/placeholder.svg?height=300&width=600&text=MusicAI+Dashboard+Preview"
-                  alt="MusicAI Dashboard"
-                  className="rounded-xl shadow-xl border border-[#26282B]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/30 to-transparent rounded-xl"></div>
+                <div className="relative w-full h-[300px] md:h-[400px] rounded-xl overflow-hidden border border-[#26282B] shadow-2xl">
+                  <Image
+                    src="/images/dashboard-preview.jpg"
+                    alt="MusicAI Dashboard Preview"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 600px"
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/30 to-transparent"></div>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -378,9 +384,15 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             {/* Brand */}
             <div className="md:col-span-1">
-              <Link href="/" className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <img src="/images/monkai-logo.png" alt="MonkAI Logo" className="w-10 h-10" />
+              <Link href="/" className="flex items-center gap-3 mb-4">
+                <div className="relative w-10 h-10">
+                  <Image
+                    src="/images/monkai-logo.png"
+                    alt="MonkAI Logo"
+                    fill
+                    className="object-contain"
+                    sizes="40px"
+                  />
                 </div>
                 <span className="text-2xl font-bold text-[#FAF7F0]">MonkAI</span>
               </Link>

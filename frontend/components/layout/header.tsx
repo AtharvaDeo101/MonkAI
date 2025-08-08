@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { Home, LogIn, Sparkles } from "lucide-react"
+import { Home, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function Header() {
@@ -14,7 +14,7 @@ export default function Header() {
       className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-md border-b border-[#26282B]"
     >
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-10 h-10 flex items-center justify-center">
               <img src="/images/monkai-logo.png" alt="MonkAI Logo" className="w-10 h-10" />
@@ -24,13 +24,10 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="flex justify-center flex-1 items-center gap-8">
             <Link href="/" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors flex items-center gap-2">
               <Home className="w-5 h-5" />
               <span>Home</span>
-            </Link>
-            <Link href="/dashboard" className="text-[#FAF7F0]/60 hover:text-[#FF6B6B] transition-colors">
-              Dashboard
             </Link>
             <Link href="/generate" className="text-[#FAF7F0]/60 hover:text-[#4ECDC4] transition-colors">
               Generate
@@ -41,10 +38,6 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-[#5F85DB]/10 to-[#FF6B6B]/10 border border-[#5F85DB]/20">
-              <Sparkles className="w-3 h-3 text-[#FFD93D]" />
-              <span className="text-xs text-[#FAF7F0]/60">Monkey Powered</span>
-            </div>
             <Link href="/login">
               <Button
                 variant="ghost"

@@ -244,7 +244,7 @@ export default function TracksPage() {
               Discover Amazing Tracks
             </h1>
             <p className="text-[#FAF7F0]/60 text-lg max-w-2xl mx-auto">
-              Explore thousands of high-quality, royalty-free tracks from Jamendo for your projects
+              Explore thousands of high-quality, royalty-free tracks
             </p>
           </motion.div>
 
