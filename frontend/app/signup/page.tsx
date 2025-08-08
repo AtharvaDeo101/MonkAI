@@ -1,16 +1,20 @@
 "use client"
 
 import type React from "react"
-
 import { motion } from "framer-motion"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, Mail, Lock, User, Sparkles } from "lucide-react"
+import Image from "next/image"
+import { Eye, EyeOff, Mail, Lock, User, Sparkles, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { auth } from "@/lib/firebase" // Import Firebase auth
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
+import { useAuth } from "@/contexts/AuthContext"
 
 function ElegantShape({
   className,
@@ -73,19 +77,68 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  
+  const router = useRouter()
+  const { user } = useAuth()
+
+  // Redirect if already logged in
+  if (user) {
+    router.push('/')
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setIsLoading(true)
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!")
+      setError("Passwords don't match!")
+      setIsLoading(false)
       return
     }
-    setIsLoading(true)
-    // Simulate signup
-    setTimeout(() => {
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long")
       setIsLoading(false)
-      // Redirect to dashboard
-    }, 2000)
+      return
+    }
+
+    try {
+      // Create user with email and password
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      )
+      
+      // Update user profile with name
+      await updateProfile(userCredential.user, {
+        displayName: formData.name
+      })
+
+      // Redirect to home page
+      router.push('/')
+    } catch (error: any) {
+      // Handle Firebase-specific errors
+      let errorMessage = "An error occurred during signup"
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = "This email is already in use"
+          break
+        case 'auth/invalid-email':
+          errorMessage = "Invalid email address"
+          break
+        case 'auth/weak-password':
+          errorMessage = "Password is too weak"
+          break
+        default:
+          errorMessage = error.message || errorMessage
+      }
+      setError(errorMessage)
+      setIsLoading(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,8 +193,14 @@ export default function SignupPage() {
           className="text-center mb-8"
         >
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 flex items-center justify-center">
-              <img src="/images/monkai-logo.png" alt="MonkAI Logo" className="w-12 h-12" />
+            <div className="relative w-12 h-12">
+              <Image
+                src="/images/monkai-logo.png"
+                alt="MonkAI Logo"
+                fill
+                className="object-contain"
+                sizes="48px"
+              />
             </div>
             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FAF7F0] to-[#FF6B6B]">
               MonkAI
@@ -167,6 +226,13 @@ export default function SignupPage() {
               <CardTitle className="text-[#FAF7F0] text-center">Create Account</CardTitle>
             </CardHeader>
             <CardContent>
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-400" />
+                  <span className="text-red-400 text-sm">{error}</span>
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="name" className="text-[#FAF7F0]/80">
