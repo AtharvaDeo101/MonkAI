@@ -401,25 +401,7 @@ export default function LandingPage() {
               </p>
               <div className="flex gap-4">
                 <a
-                  href="#"
-                  className="w-10 h-10 bg-[#26282B]/50 rounded-lg flex items-center justify-center hover:bg-[#5F85DB]/20 transition-colors"
-                >
-                  <Twitter className="w-5 h-5 text-[#FAF7F0]/60" />
-                </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 bg-[#26282B]/50 rounded-lg flex items-center justify-center hover:bg-[#FF6B6B]/20 transition-colors"
-                >
-                  <Instagram className="w-5 h-5 text-[#FAF7F0]/60" />
-                </a>
-                <a
-                  href="#"
-                  className="w-10 h-10 bg-[#26282B]/50 rounded-lg flex items-center justify-center hover:bg-[#4ECDC4]/20 transition-colors"
-                >
-                  <Youtube className="w-5 h-5 text-[#FAF7F0]/60" />
-                </a>
-                <a
-                  href="#"
+                  href="https://github.com/AtharvaDeo101/Music_Generate.git"
                   className="w-10 h-10 bg-[#26282B]/50 rounded-lg flex items-center justify-center hover:bg-[#FFD93D]/20 transition-colors"
                 >
                   <Github className="w-5 h-5 text-[#FAF7F0]/60" />
@@ -441,21 +423,6 @@ export default function LandingPage() {
                     Music Library
                   </Link>
                 </li>
-                <li>
-                  <Link href="/dashboard" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    API
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    Mobile App
-                  </Link>
-                </li>
               </ul>
             </div>
 
@@ -466,21 +433,6 @@ export default function LandingPage() {
                 <li>
                   <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
                     About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    Careers
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    Press
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    Blog
                   </Link>
                 </li>
                 <li>
@@ -502,21 +454,6 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    Documentation
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    Community
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
-                    Status
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors">
                     Privacy Policy
                   </Link>
                 </li>
@@ -525,7 +462,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-[#26282B] mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-[#FAF7F0]/60 text-sm">© 2024 MonkAI. All rights reserved.</p>
+            <p className="text-[#FAF7F0]/60 text-sm">© 2025 MonkAI. All rights reserved.</p>
             <div className="flex gap-6 mt-4 md:mt-0">
               <Link href="#" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] text-sm transition-colors">
                 Terms of Service
