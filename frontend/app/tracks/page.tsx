@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from "react"
 import {
   Search,
@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Filter,
   Sparkles,
+  ListPlus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -92,7 +93,35 @@ export default function TracksPage() {
   const [playingTrack, setPlayingTrack] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [likedTracks, setLikedTracks] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("likedTracks")
+      return saved ? JSON.parse(saved) : []
+    }
+    return []
+  })
+  const [menuOpen, setMenuOpen] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const menuRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Persist liked tracks to localStorage
+  useEffect(() => {
+    localStorage.setItem("likedTracks", JSON.stringify(likedTracks))
+  }, [likedTracks])
+
+  // Close dropdown menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(null)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
 
   // Fetch tracks from Jamendo API via Next.js API route
   useEffect(() => {
@@ -138,12 +167,12 @@ export default function TracksPage() {
       setDuration(audio.duration)
     }
 
-    audio.addEventListener('timeupdate', updateProgress)
-    audio.addEventListener('loadedmetadata', updateProgress)
+    audio.addEventListener("timeupdate", updateProgress)
+    audio.addEventListener("loadedmetadata", updateProgress)
 
     return () => {
-      audio.removeEventListener('timeupdate', updateProgress)
-      audio.removeEventListener('loadedmetadata', updateProgress)
+      audio.removeEventListener("timeupdate", updateProgress)
+      audio.removeEventListener("loadedmetadata", updateProgress)
     }
   }, [])
 
@@ -169,11 +198,70 @@ export default function TracksPage() {
     }
   }
 
+  // Handle liking a track
+  const handleLike = (trackId: string) => {
+    setLikedTracks((prev) =>
+      prev.includes(trackId) ? prev.filter((id) => id !== trackId) : [...prev, trackId],
+    )
+    setMenuOpen(null)
+  }
+
+  // Handle downloading a track
+  const handleDownload = (audioUrl: string, title: string) => {
+    const link = document.createElement("a")
+    link.href = audioUrl
+    link.download = `${title}.mp3`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setMenuOpen(null)
+  }
+
+  // Handle sharing a track
+  const handleShare = async (title: string, audioUrl: string) => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Check out ${title} on MonkAI`,
+          url: audioUrl,
+        })
+      } else {
+        await navigator.clipboard.writeText(audioUrl)
+        alert("Track URL copied to clipboard!")
+      }
+    } catch (err) {
+      console.error("Share error:", err)
+      alert("Failed to share. Track URL copied to clipboard!")
+      await navigator.clipboard.writeText(audioUrl)
+    }
+    setMenuOpen(null)
+  }
+
+  // Handle adding to playlist (placeholder)
+  const handleAddToPlaylist = (trackId: string) => {
+    alert(`Added track ${trackId} to playlist (placeholder functionality)`)
+    setMenuOpen(null)
+  }
+
+  // Handle opening the dropdown menu
+  const handleOpenMenu = (trackId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    const { clientX, clientY } = event
+    const viewportHeight = window.innerHeight
+    const menuHeight = 160 // Approximate height of the menu
+    const buttonHeight = 32 // Approximate height of the button
+    const flipUp = clientY + menuHeight + buttonHeight > viewportHeight
+    setMenuPosition({
+      top: flipUp ? clientY - menuHeight - 8 : clientY + buttonHeight + 8,
+      left: clientX - 150 + 16, // Adjust for menu width (~150px) and button width (~32px)
+    })
+    setMenuOpen(menuOpen === trackId ? null : trackId)
+  }
+
   // Format time for display
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
-    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`
   }
 
   // Filter tracks based on search query
@@ -274,39 +362,39 @@ export default function TracksPage() {
           </motion.div>
 
           {/* Tracks Grid */}
-          {isLoading ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
-            >
-              <p className="text-[#FAF7F0]/60 text-lg">Loading tracks...</p>
-            </motion.div>
-          ) : error ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
-            >
-              <p className="text-[#FF6B6B] text-lg">{error}</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setSearchQuery(searchQuery)} // Trigger refetch
+          <div className="grid gap-6 overflow-visible">
+            {isLoading ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12"
               >
-                Retry
-              </Button>
-            </motion.div>
-          ) : (
-            <div className="grid gap-4">
-              {filteredTracks.map((track, index) => (
+                <p className="text-[#FAF7F0]/60 text-lg">Loading tracks...</p>
+              </motion.div>
+            ) : error ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12"
+              >
+                <p className="text-[#FF6B6B] text-lg">{error}</p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => setSearchQuery(searchQuery)}
+                >
+                  Retry
+                </Button>
+              </motion.div>
+            ) : (
+              filteredTracks.map((track, index) => (
                 <motion.div
                   key={track.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 * index }}
                 >
-                  <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group">
+                  <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group relative z-10">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
                         {/* Album Cover */}
@@ -367,7 +455,7 @@ export default function TracksPage() {
                                   onChange={(e) => handleSeek(track.id, Number(e.target.value))}
                                   className="w-full h-1 bg-[#FAF7F0]/20 rounded-full appearance-none cursor-pointer"
                                   style={{
-                                    background: `linear-gradient(to right, #5F85DB 0%, #5F85DB ${(currentTime / (duration || 1)) * 100}%, #26282B ${(currentTime / (duration || 1)) * 100}%, #26282B 100%)`
+                                    background: `linear-gradient(to right, #5F85DB 0%, #5F85DB ${(currentTime / (duration || 1)) * 100}%, #26282B ${(currentTime / (duration || 1)) * 100}%, #26282B 100%)`,
                                   }}
                                 />
                                 <span>{formatTime(duration)}</span>
@@ -377,7 +465,7 @@ export default function TracksPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 relative">
                           <Button
                             size="sm"
                             onClick={() => handlePlay(track.id, track.audioUrl)}
@@ -389,16 +477,24 @@ export default function TracksPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-[#FAF7F0]/60 hover:text-[#FF6B6B] hover:bg-[#FF6B6B]/10"
+                            className={`${
+                              likedTracks.includes(track.id)
+                                ? "text-[#FF6B6B] hover:text-[#FF6B6B] hover:bg-[#FF6B6B]/10"
+                                : "text-[#FAF7F0]/60 hover:text-[#FF6B6B] hover:bg-[#FF6B6B]/10"
+                            }`}
+                            onClick={() => handleLike(track.id)}
                           >
-                            <Heart className="w-4 h-4" />
+                            <Heart
+                              className="w-4 h-4"
+                              fill={likedTracks.includes(track.id) ? "#FF6B6B" : "none"}
+                            />
                           </Button>
 
                           <Button
                             size="sm"
                             variant="ghost"
                             className="text-[#FAF7F0]/60 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10"
-                            onClick={() => window.location.href = track.audioUrl}
+                            onClick={() => handleDownload(track.audioUrl, track.title)}
                           >
                             <Download className="w-4 h-4" />
                           </Button>
@@ -407,27 +503,90 @@ export default function TracksPage() {
                             size="sm"
                             variant="ghost"
                             className="text-[#FAF7F0]/60 hover:text-[#5F85DB] hover:bg-[#5F85DB]/10"
+                            onClick={() => handleShare(track.title, track.audioUrl)}
                           >
                             <Share2 className="w-4 h-4" />
                           </Button>
 
-                          <Button size="sm" variant="ghost" className="text-[#FAF7F0]/60 hover:text-[#FAF7F0]">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
+                          <div className="relative">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-[#FAF7F0]/60 hover:text-[#FAF7F0]"
+                              onClick={(e) => handleOpenMenu(track.id, e)}
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </motion.div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
 
-          {filteredTracks.length === 0 && !isLoading && !error && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
-              <p className="text-[#FAF7F0]/60 text-lg">No tracks found matching your search.</p>
-            </motion.div>
-          )}
+            {/* Dropdown Menu */}
+            <AnimatePresence>
+              {menuOpen && (
+                <motion.div
+                  ref={menuRef}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed bg-[#26282B] border border-[#26282B]/50 rounded-lg p-2 shadow-lg min-w-[150px] z-[9999]"
+                  style={{ top: menuPosition.top, left: menuPosition.left }}
+                >
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 text-[#FAF7F0]/80 hover:bg-[#5F85DB]/20 hover:text-[#FAF7F0] rounded cursor-pointer"
+                    onClick={() => handleLike(menuOpen)}
+                  >
+                    <Heart
+                      className="w-4 h-4"
+                      fill={likedTracks.includes(menuOpen) ? "#FF6B6B" : "none"}
+                    />
+                    <span>
+                      {likedTracks.includes(menuOpen) ? "Remove from Likes" : "Add to Likes"}
+                    </span>
+                  </div>
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 text-[#FAF7F0]/80 hover:bg-[#5F85DB]/20 hover:text-[#FAF7F0] rounded cursor-pointer"
+                    onClick={() => handleAddToPlaylist(menuOpen)}
+                  >
+                    <ListPlus className="w-4 h-4" />
+                    <span>Add to Playlist</span>
+                  </div>
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 text-[#FAF7F0]/80 hover:bg-[#5F85DB]/20 hover:text-[#FAF7F0] rounded cursor-pointer"
+                    onClick={() => {
+                      const track = tracks.find((t) => t.id === menuOpen)
+                      if (track) handleDownload(track.audioUrl, track.title)
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </div>
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 text-[#FAF7F0]/80 hover:bg-[#5F85DB]/20 hover:text-[#FAF7F0] rounded cursor-pointer"
+                    onClick={() => {
+                      const track = tracks.find((t) => t.id === menuOpen)
+                      if (track) handleShare(track.title, track.audioUrl)
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Share</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {filteredTracks.length === 0 && !isLoading && !error && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
+                <p className="text-[#FAF7F0]/60 text-lg">No tracks found matching your search.</p>
+              </motion.div>
+            )}
+          </div>
         </div>
       </div>
     </div>
