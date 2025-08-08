@@ -27,6 +27,10 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model = None
 JAMENDO_CLIENT_ID = os.getenv("JAMENDO_CLIENT_ID")
 
+load_dotenv()
+logger.debug(f"JAMENDO_CLIENT_ID: {os.getenv('JAMENDO_CLIENT_ID')}")
+
+
 # Validate environment variables
 if not JAMENDO_CLIENT_ID:
     logger.error("JAMENDO_CLIENT_ID not set in .env file")
@@ -141,10 +145,11 @@ async def get_jamendo_tracks(q: str = "", limit: int = 20):
                 "client_id": JAMENDO_CLIENT_ID,
                 "format": "json",
                 "limit": limit,
-                "tags": q if q else None,
                 "include": "musicinfo",
                 "order": "popularity_total"
             }
+            if q:  # Only include tags if q is non-empty
+                params["tags"] = q
             logger.debug(f"Fetching Jamendo tracks with params: {params}")
             for attempt in range(3):  # Retry logic for transient errors
                 try:
@@ -167,7 +172,7 @@ async def get_jamendo_tracks(q: str = "", limit: int = 20):
                                 "artist": item["artist_name"],
                                 "duration": f"{item['duration'] // 60}:{item['duration'] % 60:02d}",
                                 "cover": item.get("album_image", "/placeholder.svg?height=80&width=80"),
-                                "tags": item.get("musicinfo", {}).get("tags", {}).get("genres", []),
+                                "tags": item.get("musicinfo", {}).get("tags", {}).get("genres", []) or [],
                                 "plays": str(item.get("stats", {}).get("playcounts", 0)),
                                 "color": "from-[#5F85DB] to-[#7B68EE]",
                                 "audioUrl": item["audio"],

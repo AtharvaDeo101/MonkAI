@@ -106,6 +106,8 @@ interface Category {
 export default function TracksPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [tracks, setTracks] = useState<Track[]>([])
+  const [genres, setGenres] = useState<Category[]>([])
+  const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [playingTrack, setPlayingTrack] = useState<string | null>(null)
@@ -130,6 +132,39 @@ export default function TracksPage() {
           throw new Error("No tracks found in response")
         }
         setTracks(data.tracks)
+
+        // Derive genres from track tags
+        const genreCounts: { [key: string]: number } = {}
+        data.tracks.forEach((track: Track) => {
+          track.tags.forEach((tag) => {
+            genreCounts[tag] = (genreCounts[tag] || 0) + 1
+          })
+        })
+        const genreColors = [
+          "bg-gradient-to-r from-[#5F85DB] to-[#7B68EE]",
+          "bg-gradient-to-r from-[#4ECDC4] to-[#44A08D]",
+          "bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53]",
+          "bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B]",
+        ]
+        const genreIcons = ["🎛️", "🌊", "🎷", "🎸"]
+        const derivedGenres = Object.entries(genreCounts).slice(0, 4).map(([name, count], index) => ({
+          name,
+          icon: genreIcons[index % genreIcons.length],
+          count: count.toString(),
+          color: genreColors[index % genreColors.length],
+        }))
+        setGenres(derivedGenres)
+
+        // Mock playlists (Jamendo API doesn't provide playlists, so we create some based on genres)
+        const mockPlaylists: Playlist[] = derivedGenres.map((genre, index) => ({
+          title: `${genre.name} Hits`,
+          description: `Top tracks in ${genre.name.toLowerCase()} genre`,
+          trackCount: Math.floor(Math.random() * 20) + 10,
+          duration: `${Math.floor(Math.random() * 2) + 1}h ${Math.floor(Math.random() * 60)}m`,
+          cover: `/placeholder.svg?height=200&width=200`,
+          color: genre.color,
+        }))
+        setPlaylists(mockPlaylists)
       } catch (err: any) {
         const errorMessage = err.message || "Unknown error occurred"
         console.error("Fetch tracks error:", {
@@ -158,42 +193,6 @@ export default function TracksPage() {
       setPlayingTrack(trackId)
     }
   }
-
-  // Static genres (could be fetched dynamically from backend)
-  const genres: Category[] = [
-    { name: "Electronic", icon: "🎛️", count: "1.2K", color: "bg-gradient-to-r from-[#5F85DB] to-[#7B68EE]" },
-    { name: "Ambient", icon: "🌊", count: "890", color: "bg-gradient-to-r from-[#4ECDC4] to-[#44A08D]" },
-    { name: "Jazz", icon: "🎷", count: "650", color: "bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53]" },
-    { name: "Rock", icon: "🎸", count: "1.1K", color: "bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B]" },
-  ]
-
-  // Static playlists (could be fetched from /playlists endpoint)
-  const playlists: Playlist[] = [
-    {
-      title: "Workout Energy",
-      description: "High-energy tracks to power your fitness routine",
-      trackCount: 25,
-      duration: "1h 32m",
-      cover: "/placeholder.svg?height=200&width=200",
-      color: "from-[#FF6B6B] to-[#FF8E53]",
-    },
-    {
-      title: "Focus & Flow",
-      description: "Ambient sounds for deep work and concentration",
-      trackCount: 18,
-      duration: "2h 15m",
-      cover: "/placeholder.svg?height=200&width=200",
-      color: "from-[#4ECDC4] to-[#44A08D]",
-    },
-    {
-      title: "Creative Vibes",
-      description: "Inspiring melodies for your creative projects",
-      trackCount: 32,
-      duration: "1h 58m",
-      cover: "/placeholder.svg?height=200&width=200",
-      color: "from-[#5F85DB] to-[#7B68EE]",
-    },
-  ]
 
   // Filter tracks based on search query
   const filteredTracks = tracks.filter(
@@ -263,7 +262,7 @@ export default function TracksPage() {
               Discover Amazing Tracks
             </h1>
             <p className="text-[#FAF7F0]/60 text-lg max-w-2xl mx-auto">
-              Explore thousands of high-quality, royalty-free tracks for your projects
+              Explore thousands of high-quality, royalty-free tracks from Jamendo for your projects
             </p>
           </motion.div>
 
@@ -425,7 +424,7 @@ export default function TracksPage() {
                             size="sm"
                             variant="ghost"
                             className="text-[#FAF7F0]/60 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10"
-                            onClick={() => window.location.href = track.audioUrl} // Use audiodownload if needed
+                            onClick={() => window.location.href = track.audioUrl}
                           >
                             <Download className="w-4 h-4" />
                           </Button>
@@ -518,21 +517,25 @@ export default function TracksPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {tracks.slice(0, 5).map((track, index) => (
-                      <div
-                        key={track.id}
-                        className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
-                      >
-                        <div className="w-8 h-8 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] rounded-lg flex items-center justify-center text-[#FAF7F0] font-bold text-sm">
-                          {index + 1}
+                    {tracks
+                      .slice()
+                      .sort((a, b) => parseInt(b.plays) - parseInt(a.plays))
+                      .slice(0, 5)
+                      .map((track, index) => (
+                        <div
+                          key={track.id}
+                          className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
+                        >
+                          <div className="w-8 h-8 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] rounded-lg flex items-center justify-center text-[#FAF7F0] font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[#FAF7F0] font-medium">{track.title}</p>
+                            <p className="text-[#FAF7F0]/60 text-sm">{track.plays} plays</p>
+                          </div>
+                          <div className="text-[#4ECDC4] text-sm font-medium">+{Math.floor(Math.random() * 20)}%</div>
                         </div>
-                        <div className="flex-1">
-                          <p className="text-[#FAF7F0] font-medium">{track.title}</p>
-                          <p className="text-[#FAF7F0]/60 text-sm">{track.plays} plays</p>
-                        </div>
-                        <div className="text-[#4ECDC4] text-sm font-medium">+{Math.floor(Math.random() * 20)}%</div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </CardContent>
               </Card>
@@ -546,21 +549,25 @@ export default function TracksPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {tracks.slice(0, 5).map((track, index) => (
-                      <div
-                        key={track.id}
-                        className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
-                      >
-                        <div className="w-8 h-8 bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B] rounded-lg flex items-center justify-center">
-                          <TrendingUp className="w-4 h-4 text-[#000000]" />
+                    {tracks
+                      .slice()
+                      .sort(() => Math.random() - 0.5) // Randomize for trending (mocked)
+                      .slice(0, 5)
+                      .map((track, index) => (
+                        <div
+                          key={track.id}
+                          className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors"
+                        >
+                          <div className="w-8 h-8 bg-gradient-to-r from-[#FFD93D] to-[#FF6B6B] rounded-lg flex items-center justify-center">
+                            <TrendingUp className="w-4 h-4 text-[#000000]" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[#FAF7F0] font-medium">{track.title}</p>
+                            <p className="text-[#FAF7F0]/60 text-sm">{track.tags[0] || "Unknown"}</p>
+                          </div>
+                          <div className="text-[#FFD93D] text-sm font-medium">+{Math.floor(Math.random() * 100)}%</div>
                         </div>
-                        <div className="flex-1">
-                          <p className="text-[#FAF7F0] font-medium">{track.title}</p>
-                          <p className="text-[#FAF7F0]/60 text-sm">{track.tags[0] || "Unknown"}</p>
-                        </div>
-                        <div className="text-[#FFD93D] text-sm font-medium">+{Math.floor(Math.random() * 100)}%</div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </CardContent>
               </Card>
