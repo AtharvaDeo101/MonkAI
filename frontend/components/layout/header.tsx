@@ -29,6 +29,9 @@ export default function Header() {
               <Home className="w-5 h-5" />
               <span>Home</span>
             </Link>
+            <Link href="/dashboard" className="text-[#FAF7F0]/60 hover:text-[#FF6B6B] transition-colors">
+              Dashboard
+            </Link>
             <Link href="/generate" className="text-[#FAF7F0]/60 hover:text-[#4ECDC4] transition-colors">
               Generate
             </Link>

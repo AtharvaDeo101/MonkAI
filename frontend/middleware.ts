@@ -11,6 +11,3 @@ export const config = {
 };
 
 
-
-
-

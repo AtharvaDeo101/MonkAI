@@ -84,7 +84,7 @@ export default function SignupPage() {
 
   // Redirect if already logged in
   if (user) {
-    router.push('/')
+    router.push('/dashboard')
     return null
   }
 
@@ -119,7 +119,7 @@ export default function SignupPage() {
       })
 
       // Redirect to home page
-      router.push('/')
+      router.push('/dashboard')
     } catch (error: any) {
       // Handle Firebase-specific errors
       let errorMessage = "An error occurred during signup"
