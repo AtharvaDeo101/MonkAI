@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles, AlertCircle, User } from "lucide-react"
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
 import { doc, setDoc, getDoc } from "firebase/firestore"
+import { useAuth } from "@/contexts/AuthContext"
 
 function ElegantShape({
   className,
@@ -67,6 +68,8 @@ function ElegantShape({
 }
 
 export default function SignupPage() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -77,7 +80,20 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const router = useRouter()
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard")
+    }
+  }, [user, authLoading, router])
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+        <div className="text-[#FAF7F0] text-lg">Loading...</div>
+      </div>
+    )
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -111,16 +127,13 @@ export default function SignupPage() {
     }
 
     try {
-      // Create user account
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
       const user = userCredential.user
 
-      // Update user profile with display name
       await updateProfile(user, {
         displayName: formData.name.trim()
       })
 
-      // Save additional user data to Firestore
       await setDoc(doc(db, "users", user.uid), {
         name: formData.name.trim(),
         email: formData.email,
@@ -133,13 +146,10 @@ export default function SignupPage() {
       })
 
       console.log("User created successfully:", user)
-      
-      // Redirect to dashboard
-      router.push("/dashboard")
+      // No router.push; handled by useEffect
     } catch (error: any) {
       console.error("Signup error:", error)
       
-      // Handle specific Firebase Auth errors
       switch (error.code) {
         case "auth/email-already-in-use":
           setError("An account with this email already exists.")
@@ -170,11 +180,9 @@ export default function SignupPage() {
       const userCredential = await signInWithPopup(auth, provider)
       const user = userCredential.user
 
-      // Check if user document already exists
       const userDoc = await getDoc(doc(db, "users", user.uid))
       
       if (!userDoc.exists()) {
-        // Save user data to Firestore for new users
         await setDoc(doc(db, "users", user.uid), {
           name: user.displayName || user.email?.split('@')[0] || "User",
           email: user.email,
@@ -189,9 +197,7 @@ export default function SignupPage() {
       }
 
       console.log("User signed up with Google:", user)
-      
-      // Redirect to dashboard
-      router.push("/dashboard")
+      // No router.push; handled by useEffect
     } catch (error: any) {
       console.error("Google sign-up error:", error)
       

@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Wand2, Play, Download, Loader2, Sparkles, Zap, Music2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -11,6 +11,10 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import Header from "@/components/layout/header"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
+
+import { AlertCircle} from "lucide-react"
 
 function ElegantShape({
   className,
@@ -64,32 +68,58 @@ function ElegantShape({
 }
 
 export default function GeneratePage() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [description, setDescription] = useState("")
   const [fileName, setFileName] = useState("")
   const [duration, setDuration] = useState([15])
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedTrack, setGeneratedTrack] = useState<string | null>(null)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log("User not authenticated, redirecting to login")
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+        <div className="text-[#FAF7F0] text-lg">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!user) return null
 
   const handleGenerate = async () => {
-    if (!description.trim()) return
+    if (!description.trim()) {
+      setError("Please enter a description for the music.")
+      return
+    }
 
     setIsGenerating(true)
+    setError("")
     try {
-      const response = await fetch('http://localhost:8000/generate_music', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      console.log("Generating music with:", { description, duration: duration[0], fileName })
+      const response = await fetch("http://localhost:8000/generate_music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description, duration: duration[0], fileName }),
       })
       const data = await response.json()
       if (response.ok) {
+        console.log("Music generated successfully:", data)
         setGeneratedTrack(data.fileName)
       } else {
-        console.error('Error:', data.detail)
-        alert(`Error: ${data.detail}`)
+        console.error("Generation error:", data.detail)
+        setError(`Error: ${data.detail}`)
       }
-    } catch (error) {
-      console.error('Fetch error:', error)
-      alert('Failed to connect to the backend. Ensure it is running.')
+    } catch (error: any) {
+      console.error("Fetch error:", error)
+      setError("Failed to connect to the backend. Ensure it is running.")
     } finally {
       setIsGenerating(false)
     }
@@ -162,6 +192,13 @@ export default function GeneratePage() {
             <p className="text-[#FAF7F0]/60 text-lg">Describe your musical vision and let AI bring it to life</p>
           </motion.div>
 
+          {error && (
+            <div className="mb-4 p-3 rounded-md bg-red-500/10 border border-red-500/20 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Input Section */}
             <motion.div
@@ -192,7 +229,6 @@ export default function GeneratePage() {
                     />
                   </div>
 
-                  {/* Quick Suggestions */}
                   <div>
                     <Label className="text-[#FAF7F0]/80 mb-3 block">Quick suggestions</Label>
                     <div className="grid grid-cols-2 gap-2">
@@ -265,7 +301,6 @@ export default function GeneratePage() {
               </Card>
             </motion.div>
 
-            {/* Output Section */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}

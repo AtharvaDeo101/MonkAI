@@ -28,7 +28,7 @@ export default function Header() {
       className="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-md border-b border-[#26282B]"
     >
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center">
+        <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-10 h-10 flex items-center justify-center">
               <img src="/images/monkai-logo.png" alt="MonkAI Logo" className="w-10 h-10" />
@@ -38,21 +38,23 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="flex justify-center flex-1 items-center gap-8">
-            <Link href="/" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors flex items-center gap-2">
-              <Home className="w-5 h-5" />
-              <span>Home</span>
-            </Link>
-            <Link href="/dashboard" className="text-[#FAF7F0]/60 hover:text-[#FF6B6B] transition-colors">
-              Dashboard
-            </Link>
-            <Link href="/generate" className="text-[#FAF7F0]/60 hover:text-[#4ECDC4] transition-colors">
-              Generate
-            </Link>
-            <Link href="/tracks" className="text-[#FAF7F0]/60 hover:text-[#FFD93D] transition-colors">
-              Tracks
-            </Link>
-          </nav>
+          {user && !loading && (
+            <nav className="flex justify-center items-center gap-8">
+              <Link href="/" className="text-[#FAF7F0]/60 hover:text-[#5F85DB] transition-colors flex items-center gap-2">
+                <Home className="w-5 h-5" />
+                <span>Home</span>
+              </Link>
+              <Link href="/dashboard" className="text-[#FAF7F0]/60 hover:text-[#FF6B6B] transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/generate" className="text-[#FAF7F0]/60 hover:text-[#4ECDC4] transition-colors">
+                Generate
+              </Link>
+              <Link href="/tracks" className="text-[#FAF7F0]/60 hover:text-[#FFD93D] transition-colors">
+                Tracks
+              </Link>
+            </nav>
+          )}
 
           <div className="flex items-center gap-3">
             {loading ? (

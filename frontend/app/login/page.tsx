@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles, AlertCircle } from "lucide-react"
@@ -10,11 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-// Custom Alert component inline
 import { cn } from "@/lib/utils"
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
 import { doc, setDoc, getDoc } from "firebase/firestore"
+import { useAuth } from "@/contexts/AuthContext"
 
 function ElegantShape({
   className,
@@ -68,12 +68,27 @@ function ElegantShape({
 }
 
 export default function LoginPage() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const router = useRouter()
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard")
+    }
+  }, [user, authLoading, router])
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+        <div className="text-[#FAF7F0] text-lg">Loading...</div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -96,13 +111,10 @@ export default function LoginPage() {
       }
       
       console.log("User signed in:", user)
-      
-      // Redirect to dashboard or home page
-      router.push("/dashboard") // Change this to your desired route
+      // No router.push here; handled by useEffect
     } catch (error: any) {
       console.error("Login error:", error)
       
-      // Handle specific Firebase Auth errors
       switch (error.code) {
         case "auth/user-not-found":
           setError("No account found with this email address.")
@@ -149,9 +161,7 @@ export default function LoginPage() {
       }
       
       console.log("User signed in with Google:", user)
-      
-      // Redirect to dashboard or home page
-      router.push("/dashboard") // Change this to your desired route
+      // No router.push here; handled by useEffect
     } catch (error: any) {
       console.error("Google sign-in error:", error)
       
