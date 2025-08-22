@@ -2,10 +2,24 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { Home, LogIn } from "lucide-react"
+import { Home, LogIn, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
 
 export default function Header() {
+  const { user, loading, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push("/")
+    } catch (error) {
+      console.error("Failed to logout:", error)
+    }
+  }
+
   return (
     <motion.header
       initial={{ y: -100, opacity: 0 }}
@@ -41,24 +55,43 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/login">
+            {loading ? (
+              <div className="w-20 h-8 bg-[#26282B]/50 rounded animate-pulse" />
+            ) : user ? (
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-[#FAF7F0]/60 hover:text-[#5F85DB] hover:bg-[#5F85DB]/10"
+                onClick={handleLogout}
+                className="text-[#FAF7F0]/60 hover:text-[#FF6B6B] hover:bg-[#FF6B6B]/10"
+                aria-label="Log out"
               >
-                <LogIn className="w-4 h-4 mr-2" />
-                Login
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
               </Button>
-            </Link>
-            <Link href="/signup">
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] hover:from-[#5F85DB]/90 hover:to-[#7B68EE]/90 shadow-lg shadow-[#5F85DB]/25"
-              >
-                Sign Up
-              </Button>
-            </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[#FAF7F0]/60 hover:text-[#5F85DB] hover:bg-[#5F85DB]/10"
+                    aria-label="Log in"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] hover:from-[#5F85DB]/90 hover:to-[#7B68EE]/90 shadow-lg shadow-[#5F85DB]/25"
+                    aria-label="Sign up"
+                  >
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

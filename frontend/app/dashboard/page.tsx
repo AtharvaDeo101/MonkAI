@@ -19,10 +19,17 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Header from "@/components/layout/header"
-import { useState } from "react"
-import DashboardSlideshow from "@/components/dashboard-slideshow"
+import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useAuth } from "@/contexts/AuthContext"
+
+const DashboardSlideshow = dynamic(() => import("@/components/dashboard-slideshow"), {
+  ssr: false,
+  loading: () => <div className="w-full h-64 bg-[#26282B]/50 rounded animate-pulse" />,
+})
 
 function ElegantShape({
   className,
@@ -76,7 +83,15 @@ function ElegantShape({
 }
 
 export default function Dashboard() {
+  const { user, userData, loading } = useAuth()
   const [playingTrack, setPlayingTrack] = useState<number | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login")
+    }
+  }, [user, loading, router])
 
   const recentTracks = [
     {
@@ -125,11 +140,21 @@ export default function Dashboard() {
   ]
 
   const stats = [
-    { label: "Tracks Generated", value: "24", icon: Music, color: "from-[#5F85DB] to-[#7B68EE]" },
-    { label: "Total Plays", value: "1.2K", icon: Play, color: "from-[#FF6B6B] to-[#FF8E53]" },
-    { label: "Hours Created", value: "8.5", icon: Clock, color: "from-[#4ECDC4] to-[#44A08D]" },
-    { label: "Favorites", value: "16", icon: Heart, color: "from-[#FFD93D] to-[#FF6B6B]" },
+    { label: "Tracks Generated", value: userData?.tracksGenerated || "0", icon: Music, color: "from-[#5F85DB] to-[#7B68EE]" },
+    { label: "Total Plays", value: userData?.totalPlays || "0", icon: Play, color: "from-[#FF6B6B] to-[#FF8E53]" },
+    { label: "Hours Created", value: userData?.hoursCreated || "0", icon: Clock, color: "from-[#4ECDC4] to-[#44A08D]" },
+    { label: "Favorites", value: userData?.favorites?.length || "0", icon: Heart, color: "from-[#FFD93D] to-[#FF6B6B]" },
   ]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+        <div className="w-64 h-8 bg-[#26282B]/50 rounded animate-pulse" />
+      </div>
+    )
+  }
+
+  if (!user) return null
 
   return (
     <div className="min-h-screen bg-[#000000] relative overflow-hidden">
@@ -184,7 +209,9 @@ export default function Dashboard() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#5F85DB]/10 to-[#FF6B6B]/10 border border-[#5F85DB]/20 mb-4">
               <Sparkles className="w-5 h-5 text-[#FFD93D]" />
-              <span className="text-sm text-[#FAF7F0]/80 tracking-wide">Welcome to MonkAI USERNAME</span>
+              <span className="text-sm text-[#FAF7F0]/80 tracking-wide">
+                Welcome to MonkAI {userData?.name || "User"}
+              </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FAF7F0] via-[#5F85DB] to-[#FF6B6B] mb-2">
               Your Creative Dashboard
@@ -322,8 +349,6 @@ export default function Dashboard() {
               </Card>
             </motion.div>
           </div>
-
-
 
           {/* Quick Actions */}
           <motion.div

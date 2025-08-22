@@ -1,10 +1,9 @@
-// contexts/AuthContext.tsx
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { User, onAuthStateChanged, signOut } from "firebase/auth"
-import { auth, db } from "@/lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
 
 interface UserData {
   name?: string
@@ -45,64 +44,97 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchUserData = async (user: User) => {
+  const fetchUserData = useCallback(async (user: User) => {
     try {
-      const userDoc = await getDoc(doc(db, "users", user.uid))
-      if (userDoc.exists()) {
-        setUserData(userDoc.data() as UserData)
-      } else {
-        // Fallback user data if document doesn't exist
-        setUserData({
-          name: user.displayName || user.email?.split('@')[0] || "User",
+      // Check localStorage first
+      const cachedData = localStorage.getItem(`userData_${user.uid}`)
+      if (cachedData) {
+        setUserData(JSON.parse(cachedData))
+        setLoading(false)
+        return
+      }
+
+      // Use displayName from Firebase Auth if available
+      if (user.displayName) {
+        const data = {
+          name: user.displayName,
           email: user.email || "",
           photoURL: user.photoURL || "",
           tracksGenerated: 0,
           totalPlays: 0,
           hoursCreated: 0,
-          favorites: []
-        })
+          favorites: [],
+        }
+        setUserData(data)
+        localStorage.setItem(`userData_${user.uid}`, JSON.stringify(data))
+        setLoading(false)
+        return
+      }
+
+      // Fallback to Firestore
+      const userDoc = await getDoc(doc(db, "users", user.uid))
+      if (userDoc.exists()) {
+        const data = userDoc.data() as UserData
+        setUserData(data)
+        localStorage.setItem(`userData_${user.uid}`, JSON.stringify(data))
+      } else {
+        const fallbackData = {
+          name: user.email?.split('@')[0] || "User",
+          email: user.email || "",
+          photoURL: user.photoURL || "",
+          tracksGenerated: 0,
+          totalPlays: 0,
+          hoursCreated: 0,
+          favorites: [],
+        }
+        setUserData(fallbackData)
+        localStorage.setItem(`userData_${user.uid}`, JSON.stringify(fallbackData))
       }
     } catch (error) {
       console.error("Error fetching user data:", error)
-      // Fallback to basic user data
-      setUserData({
+      const fallbackData = {
         name: user.displayName || user.email?.split('@')[0] || "User",
         email: user.email || "",
         photoURL: user.photoURL || "",
         tracksGenerated: 0,
         totalPlays: 0,
         hoursCreated: 0,
-        favorites: []
-      })
+        favorites: [],
+      }
+      setUserData(fallbackData)
+      localStorage.setItem(`userData_${user.uid}`, JSON.stringify(fallbackData))
     }
-  }
-
-  const refreshUserData = async () => {
-    if (user) {
-      await fetchUserData(user)
-    }
-  }
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user)
       if (user) {
-        await fetchUserData(user)
+        fetchUserData(user)
       } else {
         setUserData(null)
+        setLoading(false)
       }
-      setLoading(false)
     })
 
-    return unsubscribe
-  }, [])
+    return () => unsubscribe()
+  }, [fetchUserData])
 
   const logout = async () => {
     try {
       await signOut(auth)
       setUserData(null)
+      localStorage.clear() // Clear cached user data
     } catch (error) {
       console.error("Logout error:", error)
+    }
+  }
+
+  const refreshUserData = async () => {
+    if (user) {
+      localStorage.removeItem(`userData_${user.uid}`)
+      await fetchUserData(user)
     }
   }
 
@@ -114,9 +146,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     refreshUserData,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
