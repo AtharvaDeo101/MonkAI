@@ -9,7 +9,6 @@ import {
   Clock,
   Heart,
   Sparkles,
-  Settings,
   Share2,
   Library,
   Download,
@@ -367,7 +366,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {[
                     {
                       title: "Generate Music",
@@ -389,13 +388,6 @@ export default function Dashboard() {
                       icon: Heart,
                       color: "from-[#FF6B6B] to-[#FF8E53]",
                       href: "/favorites",
-                    },
-                    {
-                      title: "Settings",
-                      description: "Account settings",
-                      icon: Settings,
-                      color: "from-[#FFD93D] to-[#FF6B6B]",
-                      href: "/settings",
                     },
                   ].map((action, index) => (
                     <Link key={action.title} href={action.href}>
