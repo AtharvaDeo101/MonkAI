@@ -138,13 +138,6 @@ export default function Dashboard() {
     },
   ]
 
-  const stats = [
-    { label: "Tracks Generated", value: userData?.tracksGenerated || "0", icon: Music, color: "from-[#5F85DB] to-[#7B68EE]" },
-    { label: "Total Plays", value: userData?.totalPlays || "0", icon: Play, color: "from-[#FF6B6B] to-[#FF8E53]" },
-    { label: "Hours Created", value: userData?.hoursCreated || "0", icon: Clock, color: "from-[#4ECDC4] to-[#44A08D]" },
-    { label: "Favorites", value: userData?.favorites?.length || "0", icon: Heart, color: "from-[#FFD93D] to-[#FF6B6B]" },
-  ]
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center">
@@ -226,34 +219,6 @@ export default function Dashboard() {
           >
             <DashboardSlideshow />
           </motion.div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-              >
-                <Card className="bg-[#26282B]/50 border-[#26282B] backdrop-blur-sm hover:bg-[#26282B]/70 transition-all duration-300 group">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
-                      >
-                        <stat.icon className="w-6 h-6 text-[#FAF7F0]" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-[#FAF7F0]">{stat.value}</p>
-                        <p className="text-sm text-[#FAF7F0]/60">{stat.label}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Recent Tracks */}

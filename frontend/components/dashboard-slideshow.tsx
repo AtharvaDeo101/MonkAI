@@ -8,23 +8,23 @@ import { Button } from "@/components/ui/button"
 const slides = [
   {
     id: 1,
-    title: "New AI Models Available",
-    description: "Experience our latest music generation technology",
-    image: "/placeholder.svg?height=200&width=400",
+    title: "Create AI-Generated Music",
+    description: "Unleash your creativity with our cutting-edge AI music tools",
+    image: "/images/ai-music-generation.jpg",
     gradient: "from-[#5F85DB]/20 to-[#5F85DB]/30",
   },
   {
     id: 2,
-    title: "Trending Genres",
-    description: "Discover what's popular in electronic music",
-    image: "/placeholder.svg?height=200&width=400",
+    title: "Copyright-Free Music Library",
+    description: "Access a vast collection of royalty-free tracks for your projects",
+    image: "/images/copyright-free-music.jpg",
     gradient: "from-[#5F85DB]/15 to-[#5F85DB]/25",
   },
   {
     id: 3,
-    title: "Featured Artists",
-    description: "Explore tracks from top AI music creators",
-    image: "/placeholder.svg?height=200&width=400",
+    title: "AI-Powered Soundscapes",
+    description: "Generate unique, copyright-free soundscapes with AI precision",
+    image: "/images/ai-soundscapes.jpg",
     gradient: "from-[#5F85DB]/10 to-[#5F85DB]/20",
   },
 ]
