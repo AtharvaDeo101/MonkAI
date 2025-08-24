@@ -237,11 +237,6 @@ export default function TracksPage() {
     setMenuOpen(null)
   }
 
-  // Handle adding to playlist (placeholder)
-  const handleAddToPlaylist = (trackId: string) => {
-    alert(`Added track ${trackId} to playlist (placeholder functionality)`)
-    setMenuOpen(null)
-  }
 
   // Handle opening the dropdown menu
   const handleOpenMenu = (trackId: string, event: React.MouseEvent<HTMLButtonElement>) => {
@@ -549,13 +544,6 @@ export default function TracksPage() {
                     <span>
                       {likedTracks.includes(menuOpen) ? "Remove from Likes" : "Add to Likes"}
                     </span>
-                  </div>
-                  <div
-                    className="flex items-center gap-2 px-3 py-2 text-[#FAF7F0]/80 hover:bg-[#5F85DB]/20 hover:text-[#FAF7F0] rounded cursor-pointer"
-                    onClick={() => handleAddToPlaylist(menuOpen)}
-                  >
-                    <ListPlus className="w-4 h-4" />
-                    <span>Add to Playlist</span>
                   </div>
                   <div
                     className="flex items-center gap-2 px-3 py-2 text-[#FAF7F0]/80 hover:bg-[#5F85DB]/20 hover:text-[#FAF7F0] rounded cursor-pointer"
