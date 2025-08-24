@@ -11,9 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from "firebase/auth"
-import { auth, db } from "@/lib/firebase"
-import { doc, setDoc, getDoc } from "firebase/firestore"
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 import { useAuth } from "@/contexts/AuthContext"
 
 function ElegantShape({
@@ -68,7 +67,7 @@ function ElegantShape({
 }
 
 export default function LoginPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, refreshUserData } = useAuth()
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -96,25 +95,10 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      const user = userCredential.user
-      
-      // Check if user has displayName, if not try to get from Firestore
-      if (!user.displayName) {
-        const userDoc = await getDoc(doc(db, "users", user.uid))
-        if (userDoc.exists()) {
-          const userData = userDoc.data()
-          if (userData.name && userData.name !== user.displayName) {
-            await updateProfile(user, { displayName: userData.name })
-          }
-        }
-      }
-      
-      console.log("User signed in:", user)
-      // No router.push here; handled by useEffect
+      await signInWithEmailAndPassword(auth, email, password)
+      await refreshUserData()
     } catch (error: any) {
       console.error("Login error:", error)
-      
       switch (error.code) {
         case "auth/user-not-found":
           setError("No account found with this email address.")
@@ -145,26 +129,10 @@ export default function LoginPage() {
 
     try {
       const provider = new GoogleAuthProvider()
-      const userCredential = await signInWithPopup(auth, provider)
-      const user = userCredential.user
-      
-      // Save user data to Firestore if it's a new user
-      const userDoc = await getDoc(doc(db, "users", user.uid))
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", user.uid), {
-          name: user.displayName || user.email?.split('@')[0] || "User",
-          email: user.email,
-          photoURL: user.photoURL,
-          createdAt: new Date().toISOString(),
-          provider: "google"
-        })
-      }
-      
-      console.log("User signed in with Google:", user)
-      // No router.push here; handled by useEffect
+      await signInWithPopup(auth, provider)
+      await refreshUserData()
     } catch (error: any) {
       console.error("Google sign-in error:", error)
-      
       if (error.code === "auth/popup-closed-by-user") {
         setError("Sign-in cancelled.")
       } else {

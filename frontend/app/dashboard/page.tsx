@@ -1,22 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import {
-  Play,
-  Pause,
-  Music,
-  TrendingUp,
-  Clock,
-  Heart,
-  Sparkles,
-  Share2,
-  Library,
-  Download,
-  Zap,
-  Wand2,
-} from "lucide-react"
+import { Play, Pause, Music, TrendingUp, Sparkles, Zap, Wand2, Library, Heart, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import Header from "@/components/layout/header"
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
@@ -82,7 +69,7 @@ function ElegantShape({
 }
 
 export default function Dashboard() {
-  const { user, userData, loading } = useAuth()
+  const { user, userData, loading, refreshUserData } = useAuth()
   const [playingTrack, setPlayingTrack] = useState<number | null>(null)
   const router = useRouter()
 
@@ -202,11 +189,11 @@ export default function Dashboard() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#5F85DB]/10 to-[#FF6B6B]/10 border border-[#5F85DB]/20 mb-4">
               <Sparkles className="w-5 h-5 text-[#FFD93D]" />
               <span className="text-sm text-[#FAF7F0]/80 tracking-wide">
-                Welcome to MonkAI {userData?.name || "User"}
+                Welcome to MonkAI 
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FAF7F0] via-[#5F85DB] to-[#FF6B6B] mb-2">
-              Your Creative Dashboard
+              {userData?.name || "User"}'s Creative Dashboard 
             </h1>
           </motion.div>
 

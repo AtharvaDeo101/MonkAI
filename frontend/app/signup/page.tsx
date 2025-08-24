@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
-import { doc, setDoc, getDoc } from "firebase/firestore"
+import { doc, setDoc } from "firebase/firestore"
 import { useAuth } from "@/contexts/AuthContext"
 
 function ElegantShape({
@@ -68,13 +68,13 @@ function ElegantShape({
 }
 
 export default function SignupPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, refreshUserData } = useAuth()
   const router = useRouter()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -98,7 +98,7 @@ export default function SignupPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     })
   }
 
@@ -107,7 +107,6 @@ export default function SignupPage() {
     setIsLoading(true)
     setError("")
 
-    // Validate form
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.")
       setIsLoading(false)
@@ -131,7 +130,7 @@ export default function SignupPage() {
       const user = userCredential.user
 
       await updateProfile(user, {
-        displayName: formData.name.trim()
+        displayName: formData.name.trim(),
       })
 
       await setDoc(doc(db, "users", user.uid), {
@@ -142,14 +141,13 @@ export default function SignupPage() {
         tracksGenerated: 0,
         totalPlays: 0,
         hoursCreated: 0,
-        favorites: []
+        favorites: [],
       })
 
+      await refreshUserData()
       console.log("User created successfully:", user)
-      // No router.push; handled by useEffect
     } catch (error: any) {
       console.error("Signup error:", error)
-      
       switch (error.code) {
         case "auth/email-already-in-use":
           setError("An account with this email already exists.")
@@ -177,30 +175,10 @@ export default function SignupPage() {
 
     try {
       const provider = new GoogleAuthProvider()
-      const userCredential = await signInWithPopup(auth, provider)
-      const user = userCredential.user
-
-      const userDoc = await getDoc(doc(db, "users", user.uid))
-      
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", user.uid), {
-          name: user.displayName || user.email?.split('@')[0] || "User",
-          email: user.email,
-          photoURL: user.photoURL,
-          createdAt: new Date().toISOString(),
-          provider: "google",
-          tracksGenerated: 0,
-          totalPlays: 0,
-          hoursCreated: 0,
-          favorites: []
-        })
-      }
-
-      console.log("User signed up with Google:", user)
-      // No router.push; handled by useEffect
+      await signInWithPopup(auth, provider)
+      await refreshUserData()
     } catch (error: any) {
       console.error("Google sign-up error:", error)
-      
       if (error.code === "auth/popup-closed-by-user") {
         setError("Sign-up cancelled.")
       } else {

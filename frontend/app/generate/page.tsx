@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
-import { Wand2, Play, Download, Loader2, Sparkles, Zap, Music2 } from "lucide-react"
+import { Wand2, Play, Download, Loader2, Sparkles, Zap, Music2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,8 +13,8 @@ import Header from "@/components/layout/header"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
-
-import { AlertCircle} from "lucide-react"
+import { doc, collection, addDoc, updateDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 function ElegantShape({
   className,
@@ -68,13 +68,17 @@ function ElegantShape({
 }
 
 export default function GeneratePage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, userData, loading: authLoading, refreshUserData } = useAuth()
   const router = useRouter()
   const [description, setDescription] = useState("")
   const [fileName, setFileName] = useState("")
   const [duration, setDuration] = useState([15])
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedTrack, setGeneratedTrack] = useState<string | null>(null)
+  const [generatedTrack, setGeneratedTrack] = useState<{
+    fileName: string
+    audioUrl: string
+    title: string
+  } | null>(null)
   const [error, setError] = useState("")
 
   useEffect(() => {
@@ -99,6 +103,14 @@ export default function GeneratePage() {
       setError("Please enter a description for the music.")
       return
     }
+    if (description.length > 500) {
+      setError("Description is too long (max 500 characters).")
+      return
+    }
+    if (fileName && !/^[a-zA-Z0-9_-]+$/.test(fileName)) {
+      setError("File name can only contain letters, numbers, underscores, or hyphens.")
+      return
+    }
 
     setIsGenerating(true)
     setError("")
@@ -112,7 +124,35 @@ export default function GeneratePage() {
       const data = await response.json()
       if (response.ok) {
         console.log("Music generated successfully:", data)
-        setGeneratedTrack(data.fileName)
+        const trackTitle = description.substring(0, 50) + (description.length > 50 ? "..." : "")
+        
+        // Store metadata in Firestore
+        const tracksCollection = collection(db, `users/${user.uid}/generatedTracks`)
+        await addDoc(tracksCollection, {
+          fileName: data.fileName,
+          description,
+          duration: duration[0],
+          title: trackTitle,
+          cover: "/placeholder.svg?height=60&width=60",
+          color: "from-[#5F85DB] to-[#7B68EE]",
+          createdAt: new Date().toISOString(),
+          audioUrl: data.audioUrl,
+        })
+
+        // Update user stats
+        const userDocRef = doc(db, "users", user.uid)
+        await updateDoc(userDocRef, {
+          tracksGenerated: (userData?.tracksGenerated || 0) + 1,
+          hoursCreated: (userData?.hoursCreated || 0) + duration[0] / 3600,
+        })
+
+        await refreshUserData()
+
+        setGeneratedTrack({
+          fileName: data.fileName,
+          audioUrl: data.audioUrl,
+          title: trackTitle,
+        })
       } else {
         console.error("Generation error:", data.detail)
         setError(`Error: ${data.detail}`)
@@ -193,10 +233,14 @@ export default function GeneratePage() {
           </motion.div>
 
           {error && (
-            <div className="mb-4 p-3 rounded-md bg-red-500/10 border border-red-500/20 flex items-center gap-2">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 rounded-md bg-red-500/10 border border-red-500/20 flex items-center gap-2"
+            >
               <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
               <p className="text-red-400 text-sm">{error}</p>
-            </div>
+            </motion.div>
           )}
 
           <div className="grid lg:grid-cols-2 gap-8">
@@ -226,7 +270,9 @@ export default function GeneratePage() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       className="bg-[#26282B]/30 border-[#26282B]/50 text-[#FAF7F0] placeholder:text-[#FAF7F0]/40 min-h-[120px] focus:border-[#5F85DB]/50"
+                      maxLength={500}
                     />
+                    <p className="text-sm text-[#FAF7F0]/60 mt-1">{description.length}/500 characters</p>
                   </div>
 
                   <div>
@@ -337,14 +383,14 @@ export default function GeneratePage() {
                             <Music2 className="w-8 h-8 text-[#FAF7F0]" />
                           </div>
                           <div>
-                            <p className="text-[#FAF7F0] font-medium text-lg">{generatedTrack}</p>
+                            <p className="text-[#FAF7F0] font-medium text-lg">{generatedTrack.title}</p>
                             <p className="text-[#FAF7F0]/60 text-sm">{duration[0]} seconds • High Quality</p>
                           </div>
                         </div>
 
                         <div className="space-y-4">
                           <audio controls className="w-full">
-                            <source src={`http://localhost:8000/generated/${generatedTrack}`} type="audio/wav" />
+                            <source src={generatedTrack.audioUrl} type="audio/wav" />
                             Your browser does not support the audio element.
                           </audio>
                           <Button
@@ -352,7 +398,7 @@ export default function GeneratePage() {
                             className="w-full bg-gradient-to-r from-[#4ECDC4] to-[#44A08D] hover:opacity-90"
                             asChild
                           >
-                            <a href={`http://localhost:8000/generated/${generatedTrack}`} download={generatedTrack}>
+                            <a href={generatedTrack.audioUrl} download={generatedTrack.fileName}>
                               <Download className="w-4 h-4 mr-2" />
                               Download
                             </a>

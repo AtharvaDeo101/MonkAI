@@ -2,17 +2,20 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { User, onAuthStateChanged, signOut } from "firebase/auth"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 
 interface UserData {
-  name?: string
-  email?: string
+  name: string
+  email: string
   photoURL?: string
-  tracksGenerated?: number
-  totalPlays?: number
-  hoursCreated?: number
-  favorites?: string[]
+  tracksGenerated: number
+  totalPlays: number
+  hoursCreated: number
+  favorites: string[]
+  createdAt: string
+  lastLoginAt?: string
+  provider?: string
 }
 
 interface AuthContextType {
@@ -54,45 +57,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
 
-      // Use displayName from Firebase Auth if available
-      if (user.displayName) {
-        const data = {
-          name: user.displayName,
+      // Check Firestore for user profile
+      const userDoc = await getDoc(doc(db, "users", user.uid))
+      let data: UserData
+
+      if (userDoc.exists()) {
+        data = userDoc.data() as UserData
+      } else {
+        // Create a new profile if it doesn't exist
+        data = {
+          name: user.displayName || user.email?.split('@')[0] || "User",
           email: user.email || "",
           photoURL: user.photoURL || "",
           tracksGenerated: 0,
           totalPlays: 0,
           hoursCreated: 0,
           favorites: [],
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+          provider: user.providerData[0]?.providerId || "email",
         }
-        setUserData(data)
-        localStorage.setItem(`userData_${user.uid}`, JSON.stringify(data))
-        setLoading(false)
-        return
+        await setDoc(doc(db, "users", user.uid), data)
       }
 
-      // Fallback to Firestore
-      const userDoc = await getDoc(doc(db, "users", user.uid))
-      if (userDoc.exists()) {
-        const data = userDoc.data() as UserData
-        setUserData(data)
-        localStorage.setItem(`userData_${user.uid}`, JSON.stringify(data))
-      } else {
-        const fallbackData = {
-          name: user.email?.split('@')[0] || "User",
-          email: user.email || "",
-          photoURL: user.photoURL || "",
-          tracksGenerated: 0,
-          totalPlays: 0,
-          hoursCreated: 0,
-          favorites: [],
-        }
-        setUserData(fallbackData)
-        localStorage.setItem(`userData_${user.uid}`, JSON.stringify(fallbackData))
-      }
+      // Update lastLoginAt
+      await setDoc(doc(db, "users", user.uid), { lastLoginAt: new Date().toISOString() }, { merge: true })
+
+      setUserData(data)
+      localStorage.setItem(`userData_${user.uid}`, JSON.stringify(data))
     } catch (error) {
-      console.error("Error fetching user data:", error)
-      const fallbackData = {
+      console.error("Error fetching/creating user data:", error)
+      const fallbackData: UserData = {
         name: user.displayName || user.email?.split('@')[0] || "User",
         email: user.email || "",
         photoURL: user.photoURL || "",
@@ -100,6 +95,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         totalPlays: 0,
         hoursCreated: 0,
         favorites: [],
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        provider: user.providerData[0]?.providerId || "email",
       }
       setUserData(fallbackData)
       localStorage.setItem(`userData_${user.uid}`, JSON.stringify(fallbackData))
@@ -115,6 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setUserData(null)
         setLoading(false)
+        localStorage.clear()
       }
     })
 
@@ -125,7 +124,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await signOut(auth)
       setUserData(null)
-      localStorage.clear() // Clear cached user data
+      localStorage.clear()
     } catch (error) {
       console.error("Logout error:", error)
     }
