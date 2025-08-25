@@ -20,6 +20,9 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Header from "@/components/layout/header"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/AuthContext"
+import { addDoc, collection, serverTimestamp } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 function ElegantShape({
   className,
@@ -86,6 +89,7 @@ interface Track {
 }
 
 export default function TracksPage() {
+  const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [tracks, setTracks] = useState<Track[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -176,8 +180,28 @@ export default function TracksPage() {
     }
   }, [])
 
+  // Record play event in Firestore
+  const recordPlay = async (track: Track) => {
+    if (user) {
+      try {
+        await addDoc(collection(db, `users/${user.uid}/plays`), {
+          trackId: track.id,
+          title: track.title,
+          artist: track.artist,
+          cover: track.cover,
+          duration: track.duration,
+          color: track.color,
+          audioUrl: track.audioUrl,
+          timestamp: serverTimestamp(),
+        })
+      } catch (error) {
+        console.error("Error recording play:", error)
+      }
+    }
+  }
+
   // Handle play/pause for tracks
-  const handlePlay = (trackId: string, audioUrl: string) => {
+  const handlePlay = (trackId: string, audioUrl: string, track: Track) => {
     if (playingTrack === trackId) {
       audioRef.current?.pause()
       setPlayingTrack(null)
@@ -187,6 +211,7 @@ export default function TracksPage() {
         audioRef.current.play().catch((err) => console.error("Playback error:", err))
       }
       setPlayingTrack(trackId)
+      recordPlay(track) // Record the play event
     }
   }
 
@@ -463,7 +488,7 @@ export default function TracksPage() {
                         <div className="flex items-center gap-2 relative">
                           <Button
                             size="sm"
-                            onClick={() => handlePlay(track.id, track.audioUrl)}
+                            onClick={() => handlePlay(track.id, track.audioUrl, track)}
                             className={`bg-gradient-to-r ${track.color} hover:opacity-90`}
                           >
                             {playingTrack === track.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}

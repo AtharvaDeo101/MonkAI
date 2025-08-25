@@ -1,3 +1,4 @@
+// frontend/app/dashboard/page.tsx (Updated to fetch recent plays from Firestore)
 "use client"
 
 import { motion } from "framer-motion"
@@ -11,6 +12,8 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 const DashboardSlideshow = dynamic(() => import("@/components/dashboard-slideshow"), {
   ssr: false,
@@ -72,6 +75,7 @@ export default function Dashboard() {
   const { user, userData, loading, refreshUserData } = useAuth()
   const [playingTrack, setPlayingTrack] = useState<number | null>(null)
   const router = useRouter()
+  const [recentTracks, setRecentTracks] = useState<any[]>([])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -79,29 +83,41 @@ export default function Dashboard() {
     }
   }, [user, loading, router])
 
-  const recentTracks = [
-    {
-      id: 1,
-      title: "Ambient Dreams",
-      duration: "2:34",
-      cover: "/placeholder.svg?height=60&width=60",
-      color: "from-[#FF6B6B] to-[#FF8E53]",
-    },
-    {
-      id: 2,
-      title: "Electronic Pulse",
-      duration: "3:12",
-      cover: "/placeholder.svg?height=60&width=60",
-      color: "from-[#4ECDC4] to-[#44A08D]",
-    },
-    {
-      id: 3,
-      title: "Jazz Fusion",
-      duration: "4:05",
-      cover: "/placeholder.svg?height=60&width=60",
-      color: "from-[#FFD93D] to-[#FF6B6B]",
-    },
-  ]
+  useEffect(() => {
+    const fetchRecentPlays = async () => {
+      if (user) {
+        try {
+          const q = query(
+            collection(db, `users/${user.uid}/plays`),
+            orderBy("timestamp", "desc"),
+            limit(3)
+          )
+          const snapshot = await getDocs(q)
+          const plays = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          setRecentTracks(plays)
+        } catch (error) {
+          console.error("Error fetching recent plays:", error)
+        }
+      }
+    }
+
+    if (user) {
+      fetchRecentPlays()
+    }
+  }, [user])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+        <div className="w-64 h-8 bg-[#26282B]/50 rounded animate-pulse" />
+      </div>
+    )
+  }
+
+  if (!user) return null
 
   const popularGenres = [
     {
@@ -124,16 +140,6 @@ export default function Dashboard() {
       color: "from-[#FFD93D] to-[#FF6B6B]",
     },
   ]
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-        <div className="w-64 h-8 bg-[#26282B]/50 rounded animate-pulse" />
-      </div>
-    )
-  }
-
-  if (!user) return null
 
   return (
     <div className="min-h-screen bg-[#000000] relative overflow-hidden">
@@ -220,38 +226,42 @@ export default function Dashboard() {
                     <div className="w-8 h-8 bg-gradient-to-r from-[#5F85DB] to-[#7B68EE] rounded-lg flex items-center justify-center">
                       <Music className="w-5 h-5 text-[#FAF7F0]" />
                     </div>
-                    Recent Creations
+                    Recent Listens
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {recentTracks.map((track, index) => (
-                    <div
-                      key={track.id}
-                      className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors group"
-                    >
-                      <div className="relative">
-                        <img
-                          src={track.cover || "/placeholder.svg"}
-                          alt={track.title}
-                          className="w-12 h-12 rounded-lg"
-                        />
-                        <div
-                          className={`absolute inset-0 bg-gradient-to-r ${track.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
-                        ></div>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[#FAF7F0] font-medium">{track.title}</p>
-                        <p className="text-[#FAF7F0]/60 text-sm">{track.duration}</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}
-                        className={`bg-gradient-to-r ${track.color} hover:opacity-90`}
+                  {recentTracks.length === 0 ? (
+                    <p className="text-[#FAF7F0]/60 text-center">No recent listens yet</p>
+                  ) : (
+                    recentTracks.map((track: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-4 p-3 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-colors group"
                       >
-                        {playingTrack === track.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="relative">
+                          <img
+                            src={track.cover || "/placeholder.svg"}
+                            alt={track.title}
+                            className="w-12 h-12 rounded-lg"
+                          />
+                          <div
+                            className={`absolute inset-0 bg-gradient-to-r ${track.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
+                          ></div>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[#FAF7F0] font-medium">{track.title}</p>
+                          <p className="text-[#FAF7F0]/60 text-sm">{track.duration}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}
+                          className={`bg-gradient-to-r ${track.color} hover:opacity-90`}
+                        >
+                          {playingTrack === track.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
