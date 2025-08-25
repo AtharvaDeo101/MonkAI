@@ -1,4 +1,3 @@
-// frontend/app/dashboard/page.tsx (Updated to fetch recent plays from Firestore)
 "use client"
 
 import { motion } from "framer-motion"
@@ -6,13 +5,13 @@ import { Play, Pause, Music, TrendingUp, Sparkles, Zap, Wand2, Library, Heart, U
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import Header from "@/components/layout/header"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
-import { collection, query, orderBy, limit, getDocs } from "firebase/firestore"
+import { collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 const DashboardSlideshow = dynamic(() => import("@/components/dashboard-slideshow"), {
@@ -73,9 +72,45 @@ function ElegantShape({
 
 export default function Dashboard() {
   const { user, userData, loading, refreshUserData } = useAuth()
-  const [playingTrack, setPlayingTrack] = useState<number | null>(null)
-  const router = useRouter()
+  const [playingTrack, setPlayingTrack] = useState<string | null>(null)
   const [recentTracks, setRecentTracks] = useState<any[]>([])
+  const router = useRouter()
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Record play event in Firestore
+  const recordPlay = async (track: any) => {
+    if (user) {
+      try {
+        await addDoc(collection(db, `users/${user.uid}/plays`), {
+          trackId: track.id,
+          title: track.title,
+          artist: track.artist || "Unknown Artist",
+          cover: track.cover,
+          duration: track.duration,
+          color: track.color,
+          audioUrl: track.audioUrl,
+          timestamp: serverTimestamp(),
+        })
+      } catch (error) {
+        console.error("Error recording play:", error)
+      }
+    }
+  }
+
+  // Handle play/pause for tracks
+  const handlePlay = (trackId: string, audioUrl: string, track: any) => {
+    if (playingTrack === trackId) {
+      audioRef.current?.pause()
+      setPlayingTrack(null)
+    } else {
+      if (audioRef.current) {
+        audioRef.current.src = audioUrl
+        audioRef.current.play().catch((err) => console.error("Playback error:", err))
+      }
+      setPlayingTrack(trackId)
+      recordPlay(track) // Record the play event
+    }
+  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -143,6 +178,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#000000] relative overflow-hidden">
+      <audio ref={audioRef} />
       <div className="absolute inset-0 bg-gradient-to-br from-[#5F85DB]/[0.08] via-[#FF6B6B]/[0.05] to-[#4ECDC4]/[0.08] blur-3xl" />
 
       {/* Geometric Shapes */}
@@ -250,11 +286,12 @@ export default function Dashboard() {
                         </div>
                         <div className="flex-1">
                           <p className="text-[#FAF7F0] font-medium">{track.title}</p>
+                          <p className="text-[#FAF7F0]/60 text-sm">{track.artist || "Unknown Artist"}</p>
                           <p className="text-[#FAF7F0]/60 text-sm">{track.duration}</p>
                         </div>
                         <Button
                           size="sm"
-                          onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}
+                          onClick={() => handlePlay(track.id, track.audioUrl, track)}
                           className={`bg-gradient-to-r ${track.color} hover:opacity-90`}
                         >
                           {playingTrack === track.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
