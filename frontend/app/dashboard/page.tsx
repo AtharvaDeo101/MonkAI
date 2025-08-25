@@ -74,8 +74,27 @@ export default function Dashboard() {
   const { user, userData, loading, refreshUserData } = useAuth()
   const [playingTrack, setPlayingTrack] = useState<string | null>(null)
   const [recentTracks, setRecentTracks] = useState<any[]>([])
+  const [popularGenres, setPopularGenres] = useState<any[]>([])
   const router = useRouter()
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Fetch popular genres from API
+  useEffect(() => {
+    const fetchPopularGenres = async () => {
+      try {
+        const response = await fetch("/api/genres");
+        const data = await response.json();
+        if (response.ok) {
+          setPopularGenres(data);
+        } else {
+          console.error("Error fetching genres:", data.error);
+        }
+      } catch (error) {
+        console.error("Error fetching genres:", error);
+      }
+    };
+    fetchPopularGenres();
+  }, []);
 
   // Record play event in Firestore
   const recordPlay = async (track: any) => {
@@ -153,28 +172,6 @@ export default function Dashboard() {
   }
 
   if (!user) return null
-
-  const popularGenres = [
-    {
-      name: "Electronic",
-      image: "/placeholder.svg?height=120&width=120",
-      tracks: 1240,
-      color: "from-[#5F85DB] to-[#7B68EE]",
-    },
-    {
-      name: "Ambient",
-      image: "/placeholder.svg?height=120&width=120",
-      tracks: 890,
-      color: "from-[#4ECDC4] to-[#44A08D]",
-    },
-    { name: "Jazz", image: "/placeholder.svg?height=120&width=120", tracks: 650, color: "from-[#FF6B6B] to-[#FF8E53]" },
-    {
-      name: "Rock",
-      image: "/placeholder.svg?height=120&width=120",
-      tracks: 1100,
-      color: "from-[#FFD93D] to-[#FF6B6B]",
-    },
-  ]
 
   return (
     <div className="min-h-screen bg-[#000000] relative overflow-hidden">
@@ -319,30 +316,34 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    {popularGenres.map((genre, index) => (
-                      <motion.div
-                        key={genre.name}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
-                        className="text-center p-4 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-all duration-300 cursor-pointer group"
-                      >
-                        <div className="relative mb-3">
-                          <img
-                            src={genre.image || "/placeholder.svg"}
-                            alt={genre.name}
-                            className="w-16 h-16 rounded-lg mx-auto"
-                          />
-                          <div
-                            className={`absolute inset-0 bg-gradient-to-r ${genre.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
-                          ></div>
-                        </div>
-                        <p className="text-[#FAF7F0] font-medium text-sm">{genre.name}</p>
-                        <p className="text-[#FAF7F0]/60 text-xs">{genre.tracks} tracks</p>
-                      </motion.div>
-                    ))}
-                  </div>
+                  {popularGenres.length === 0 ? (
+                    <p className="text-[#FAF7F0]/60 text-center">Loading genres...</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      {popularGenres.map((genre, index) => (
+                        <motion.div
+                          key={genre.name}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
+                          className="text-center p-4 rounded-lg bg-[#26282B]/30 hover:bg-[#26282B]/50 transition-all duration-300 cursor-pointer group"
+                        >
+                          <div className="relative mb-3">
+                            <img
+                              src={genre.image || "/placeholder.svg"}
+                              alt={genre.name}
+                              className="w-16 h-16 rounded-lg mx-auto"
+                            />
+                            <div
+                              className={`absolute inset-0 bg-gradient-to-r ${genre.color} opacity-20 rounded-lg group-hover:opacity-40 transition-opacity`}
+                            ></div>
+                          </div>
+                          <p className="text-[#FAF7F0] font-medium text-sm">{genre.name}</p>
+                          <p className="text-[#FAF7F0]/60 text-xs">{genre.tracks} tracks</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
