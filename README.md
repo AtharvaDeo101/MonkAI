@@ -42,6 +42,11 @@ yarn dev
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+5. Run the backend server: 
+\'\'\'bash
+uvicorn app:app --reload
+\'\'\'
+
 ## Project Structure
 
 \`\`\`
