@@ -10,7 +10,7 @@ const slides = [
     id: 1,
     title: "Create AI-Generated Music",
     description: "Unleash your creativity with our cutting-edge AI music tools",
-    image: "/images/ai-music-generation.jpg",
+    image: "/images/1.jpg",
     gradient: "from-[#5F85DB]/20 to-[#5F85DB]/30",
   },
   {
