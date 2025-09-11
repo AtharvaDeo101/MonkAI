@@ -29,8 +29,8 @@ COPY src/ .
 # Create directory for generated audio files
 RUN mkdir -p generated
 
-# Expose the port Render assigns
-EXPOSE $PORT
+# Expose the port assigned by Render
+EXPOSE 8000
 
-# Start command for FastAPI with Gunicorn and Uvicorn
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app:app", "--bind", "0.0.0.0:$PORT"]
+# Start command for FastAPI with Gunicorn and Uvicorn, using PORT env var
+CMD ["sh", "-c", "gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app --bind 0.0.0.0:$PORT"]
