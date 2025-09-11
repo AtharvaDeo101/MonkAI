@@ -76,7 +76,10 @@ app.mount("/generated", StaticFiles(directory="generated"), name="generated")
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        os.environ.get("FRONTEND_URL", "https://your-app.vercel.app")
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

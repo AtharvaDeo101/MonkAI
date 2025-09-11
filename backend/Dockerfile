@@ -1,10 +1,17 @@
-# Use Python 3.10 slim for compatibility
+# Use Python 3.10 slim for compatibility with audiocraft and av
 FROM python:3.10-slim
 
 # Install FFmpeg and build dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     pkg-config \
+    libavformat-dev \
+    libavcodec-dev \
+    libavdevice-dev \
+    libavutil-dev \
+    libavfilter-dev \
+    libswscale-dev \
+    libswresample-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -19,8 +26,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the backend source code
 COPY src/ .
 
-# Expose the port Render will assign
+# Create directory for generated audio files
+RUN mkdir -p generated
+
+# Expose the port Render assigns
 EXPOSE $PORT
 
-# Start command (adjust based on your framework)
+# Start command for FastAPI with Gunicorn and Uvicorn
 CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app:app", "--bind", "0.0.0.0:$PORT"]
