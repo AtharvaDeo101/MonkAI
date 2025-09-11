@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy requirements.txt from the root directory
-COPY ../requirements.txt .
+# Copy requirements.txt from backend/src/
+COPY src/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
