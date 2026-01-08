@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 logger.debug("Starting FastAPI application setup")
 
-model_size = 'small'
+model_size = 'small' 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 model = None
@@ -78,7 +78,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        os.environ.get("FRONTEND_URL", "https://your-app.vercel.app")
+        os.environ.get("FRONTEND_URL", "https://monk-ai-ten.vercel.app/")
     ],
     allow_credentials=True,
     allow_methods=["*"],
