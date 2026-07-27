@@ -4,12 +4,12 @@ A modern web application for generating music using AI, built with Next.js, Type
 
 ## Features
 
-- 🎵 AI-powered music generation from text descriptions
-- 🎧 Copyright-free music library
-- 🎨 Beautiful geometric design with custom color scheme
-- 📱 Fully responsive design
-- ⚡ Built with Next.js 14 and TypeScript
-- 🎭 Smooth animations with Framer Motion
+- AI-powered music generation from text descriptions
+- Copyright-free music library
+- Beautiful geometric design with custom color scheme
+- Fully responsive design
+- Built with Next.js 14 and TypeScript
+- Smooth animations with Framer Motion
 
 ## Getting Started
 
