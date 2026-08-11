@@ -1,4 +1,4 @@
-# MusicAI - AI-Powered Music Generation App
+# MusicAI - AI-Powered Music Generation 
 
 A modern web application for generating music using AI, built with Next.js, TypeScript, and Tailwind CSS.
 
