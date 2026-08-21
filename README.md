@@ -92,8 +92,6 @@ The application uses a custom color palette:
 
 ## Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for produc
-
+- `npm run dev` - Start development ser
 
 
