@@ -90,8 +90,6 @@ The application uses a custom color palette:
 - **Lucide React** - Icons
 - **shadcn/ui** - UI component library
 
-## Available Scripts
 
-- `npm run dev` - Start development ser
 
 
