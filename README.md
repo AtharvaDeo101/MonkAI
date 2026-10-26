@@ -10,7 +10,6 @@
 - Built with Next.js 14 and TypeScript
 - Smooth animations with Framer Motion
 
-## Getting Started
 
 ### Prerequisites
 
